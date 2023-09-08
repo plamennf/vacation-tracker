@@ -3,6 +3,7 @@
 #include "draw.h"
 #include "hud.h"
 #include "os_specific.h"
+#include "vacation.h"
 
 #include "shader_catalog.h"
 #include "texture_catalog.h"
@@ -134,6 +135,8 @@ void draw_text(Dynamic_Font *font, char *text, int x, int y, Vector4 color) {
 
 static void draw_hud() {
     auto sys = globals.display_system;
+
+    int start_y = sys->target_height;
     
     //
     // Draw time
@@ -155,6 +158,9 @@ static void draw_hud() {
             draw_text(font, text, x+offset, y-offset, Vector4(0, 0, 0, 1));
         }
         draw_text(font, text, x, y, Vector4(1, 1, 1, 1));
+
+        start_y -= font->character_height * 2;
+        start_y -= font->character_height / 2;
     }
 
     int font_size = (int)(0.025f * sys->target_height);
@@ -165,7 +171,8 @@ static void draw_hud() {
     //
     {
         char *text = "Add employee";
-        int offset = (int)(0.025f * sys->target_height);
+        //int offset = (int)(0.025f * sys->target_height);
+        int offset = 0;
 
         int width  = font->get_text_width(text) * 2;
         int height = font->character_height * 2;
@@ -174,7 +181,51 @@ static void draw_hud() {
         int y = sys->target_height - offset - height;
         
         if (do_button(font, text, x, y, width, height, default_button_theme)) {
-            log("Pressed button.\n");
+            log("Adding employee.\n");
+
+            Employee *employee = add_employee("Надя Любомирова Цветкова", Vector4(0, 0, 1, 1));
+        }
+    }
+    
+    //
+    // Draw all employees
+    //
+    {
+        int font_size = (int)(0.025f * sys->target_height);
+        auto font = get_font_at_size("OpenSans-Regular", font_size);
+
+        //int pad = (int)(0.0025f * sys->target_height);
+        int pad = 0;
+        
+        int x = pad;
+        int y = start_y;
+        
+        int offset = font->character_height / 20;
+        for (auto employee : all_employees) {
+            char *text = employee->name;
+            
+            int text_width = font->get_text_width(text);
+
+            int width  = text_width * 2;
+            int height = font->character_height * 2;
+
+            int x0 = x;
+            int y0 = y - height;
+            
+            sys->set_shader(globals.shader_color);
+            
+            sys->immediate_begin();
+            draw_quad(Vector2((float)x0, (float)y0), Vector2((float)width, (float)height), employee->color);
+            sys->immediate_flush();
+
+            int tx = x0 + ((width  - font->get_text_width(text)) / 2);
+            int ty = y0 + ((height - font->character_height) / 2) + (font->y_offset_for_centering / 2);
+            
+            if (offset) {
+                draw_text(font, text, tx+offset, ty-offset, Vector4(0, 0, 0, 1));
+            }
+            draw_text(font, text, tx, ty, Vector4(1, 1, 1, 1));
+            y -= font->character_height;
         }
     }
 }
