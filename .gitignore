@@ -1,0 +1,5 @@
+.vs/
+*.user
+run_tree/vacation_debug.*
+run_tree/vacation.*
+build-int/
