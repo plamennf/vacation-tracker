@@ -44,7 +44,7 @@ bool do_button(Dynamic_Font *font, char *text, int x, int y, int width, int heig
     int tx = x + ((width  - font->get_text_width(text)) / 2);
     int ty = y + ((height - font->character_height) / 2) + (font->y_offset_for_centering / 2);
 
-    int offset = font->character_height / 10;
+    int offset = font->character_height / 20;
     if (offset > 0) {
         draw_text(font, text, tx+offset, ty-offset, Vector4(0, 0, 0, 1));
     }

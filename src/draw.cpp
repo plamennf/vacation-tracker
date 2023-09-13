@@ -155,9 +155,9 @@ static void draw_hud() {
 
         int offset = font->character_height / 20;
         if (offset) {
-            draw_text(font, text, x+offset, y-offset, Vector4(0, 0, 0, 1));
+            draw_text(font, text, x+offset, y-offset, Vector4(1, 1, 1, 1));
         }
-        draw_text(font, text, x, y, Vector4(1, 1, 1, 1));
+        draw_text(font, text, x, y, Vector4(0, 0, 0, 1));
 
         start_y -= font->character_height * 2;
         start_y -= font->character_height / 2;
@@ -170,7 +170,7 @@ static void draw_hud() {
     // Add employee button
     //
     {
-        char *text = "Add employee";
+        char *text = "Добави служител";
         //int offset = (int)(0.025f * sys->target_height);
         int offset = 0;
 
@@ -183,7 +183,8 @@ static void draw_hud() {
         if (do_button(font, text, x, y, width, height, default_button_theme)) {
             log("Adding employee.\n");
 
-            Employee *employee = add_employee("Надя Любомирова Цветкова", Vector4(0, 0, 1, 1));
+            Employee *employee = add_employee("Надя Любомирова Цветкова");
+            auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
         }
     }
     
@@ -200,7 +201,7 @@ static void draw_hud() {
         int x = pad;
         int y = start_y;
         
-        int offset = font->character_height / 20;
+        int offset = font->character_height / 40;
         for (auto employee : all_employees) {
             char *text = employee->name;
             
@@ -211,21 +212,29 @@ static void draw_hud() {
 
             int x0 = x;
             int y0 = y - height;
-            
-            sys->set_shader(globals.shader_color);
-            
-            sys->immediate_begin();
-            draw_quad(Vector2((float)x0, (float)y0), Vector2((float)width, (float)height), employee->color);
-            sys->immediate_flush();
 
-            int tx = x0 + ((width  - font->get_text_width(text)) / 2);
-            int ty = y0 + ((height - font->character_height) / 2) + (font->y_offset_for_centering / 2);
-            
-            if (offset) {
-                draw_text(font, text, tx+offset, ty-offset, Vector4(0, 0, 0, 1));
+            auto theme = default_button_theme;
+            theme.bg_color         = Vector4(56.0f/255.0f,  176.0f/255.0f, 0, 1);
+            theme.hovered_bg_color = Vector4(0,             128.0f/255.0f, 0, 1);
+            theme.pressed_bg_color = Vector4(0,             114.0f/255.0f, 0, 1);
+            if (do_button(font, text, x0, y0, width, height, theme)) {
+                employee->draw_all_vacations_on_hud = !employee->draw_all_vacations_on_hud;
             }
-            draw_text(font, text, tx, ty, Vector4(1, 1, 1, 1));
-            y -= font->character_height;
+
+            y -= height;
+
+            if (!employee->draw_all_vacations_on_hud) continue;
+
+            for (auto info : employee->vacations) {
+                char *text = mprintf("От %d.%d.%dг. до %d.%d.%dг.", info.from_day, info.from_month, info.year, info.to_day, info.to_month, info.year);
+                defer { delete [] text; };
+
+                y0 = y - font->character_height;
+                
+                draw_text(font, text, x0, y0, Vector4(0, 0, 0, 1));
+
+                y -= font->character_height - font->typical_descender;
+            }
         }
     }
 }

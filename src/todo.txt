@@ -2,3 +2,9 @@ Credits:
 - <a href="https://www.freepik.com/free-photo/vivid-blurred-colorful-background_16618863.htm#query=gradient%20background&position=0&from_view=keyword&track=ais">Image by user3802032</a> on Freepik
 
 Have the employee buttons be hideable and show in text form the to and from dates.
+Add text input
+Add ability to left click on an employee and change their name
+Add color picker widget
+Add ability to right click on an employee and change their color
+Add calendar view
+Show each employee vacations as separate colors
