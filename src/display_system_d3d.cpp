@@ -276,6 +276,8 @@ Display_System_D3D::Display_System_D3D(int width, int height, char *title, bool 
     target_width   = 0;
     target_height  = 0;
 
+    resize_callback = NULL;
+    
     maintain_aspect_ratio = false;
     aspect_ratio = (float)display_width / (float)display_height;
 

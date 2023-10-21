@@ -86,6 +86,7 @@ template <typename T>
 inline Array <T>::~Array() {
     if (data) {
         free(data);
+        data = NULL;
     }
 }
 

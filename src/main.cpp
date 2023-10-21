@@ -50,6 +50,8 @@ int main(int argc, char **argv) {
     globals.display_system->maintain_aspect_ratio = true;
     globals.display_system->desired_aspect_ratio = 16.0f / 9.0f;
     globals.display_system->resize_render_targets();
+
+    globals.display_system->resize_callback = handle_resizes;
     
     globals.shader_catalog = new Shader_Catalog();
     defer { delete globals.shader_catalog; };

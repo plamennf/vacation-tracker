@@ -53,4 +53,8 @@ void Display_System::resize_render_targets() {
 
     offset_offscreen_to_back_buffer_x = (display_width  - width)  / 2;
     offset_offscreen_to_back_buffer_y = (display_height - height) / 2;
+
+    if (resize_callback) {
+        resize_callback();
+    }
 }

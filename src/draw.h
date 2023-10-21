@@ -6,6 +6,8 @@
 void init_shaders();
 void rendering_2d_right_handed();
 
+void handle_resizes();
+
 void resolve_to_back_buffer();
 
 void draw_quad(Vector2 position, Vector2 size, Vector4 color);

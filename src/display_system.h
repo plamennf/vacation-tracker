@@ -161,6 +161,8 @@ struct Display_System {
 
     int offset_offscreen_to_back_buffer_x;
     int offset_offscreen_to_back_buffer_y;
+
+    void (*resize_callback)();
     
     Display_System();
     virtual ~Display_System();
