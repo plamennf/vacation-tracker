@@ -3,10 +3,14 @@
 #include "display_system.h"
 #include "font.h"
 
+extern float draw_y_offset_due_to_scrolling;
+
 void init_shaders();
 void rendering_2d_right_handed();
+void rendering_2d_right_handed_with_y_offset(float y_offset);
 
 void handle_resizes();
+void handle_mouse_wheel_event(int num_ticks);
 
 void resolve_to_back_buffer();
 

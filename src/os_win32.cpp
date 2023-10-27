@@ -122,4 +122,11 @@ System_Time os_get_local_time() {
     return result;
 }
 
+double os_get_time() {
+    LARGE_INTEGER perf_freq, perf_counter;
+    QueryPerformanceFrequency(&perf_freq);
+    QueryPerformanceCounter(&perf_counter);
+    return (double)perf_counter.QuadPart / (double)perf_freq.QuadPart;
+}
+
 #endif

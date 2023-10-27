@@ -16,6 +16,9 @@ static int right_click_x, right_click_y, right_click_width, right_click_height;
 static int right_click_prev_mx, right_click_prev_my;
 static int right_click_prev_target_width, right_click_prev_target_height;
 
+float draw_y_offset_due_to_scrolling = 0.0f;
+static float bottom_y_after_drawing = 0.0f;
+
 static char *right_click_options[] = {
     "Премахни",
     "Преименувай",
@@ -84,6 +87,8 @@ static void calculate_right_click_bounds(int mx, int my) {
     int offset_x = sys->offset_offscreen_to_back_buffer_x;
     int offset_y = sys->offset_offscreen_to_back_buffer_y;
 
+    offset_y += (int)draw_y_offset_due_to_scrolling;
+    
     right_click_x -= offset_x;
     right_click_y -= offset_y;
     
@@ -148,12 +153,26 @@ void handle_resizes() {
     }
 }
 
+void handle_mouse_wheel_event(int num_ticks) {
+    draw_y_offset_due_to_scrolling -= num_ticks * 10.0f;
+    if (draw_y_offset_due_to_scrolling < 0.0f) draw_y_offset_due_to_scrolling = 0.0f;
+    if (draw_y_offset_due_to_scrolling > -bottom_y_after_drawing) draw_y_offset_due_to_scrolling = -bottom_y_after_drawing;
+}
+
 void init_shaders() {
+    auto sys = globals.display_system;
+    
     globals.shader_color = globals.shader_catalog->get_by_name("color");
     globals.shader_texture = globals.shader_catalog->get_by_name("texture");
     globals.shader_text = globals.shader_catalog->get_by_name("text");
 
     init_hud_themes();
+
+    // Calculate right_click_height before calculate_right_click_bounds is called,
+    // so that we can properly clamp draw_y_offset_due_to_scrolling.
+    int font_size = (int)(0.025f * sys->offscreen_buffer->height);
+    auto font = get_font_at_size("OpenSans-Regular", font_size);
+    right_click_height = (font->character_height * 2) * ArrayCount(right_click_options);
 }
 
 void rendering_2d_right_handed() {
@@ -174,6 +193,35 @@ void rendering_2d_right_handed() {
 
     sys->view_to_proj_matrix = m;
     sys->world_to_view_matrix.identity();
+    sys->object_to_world_matrix.identity();
+    
+    sys->refresh_transform();
+}
+
+void rendering_2d_right_handed_with_y_offset(float y_offset) {
+    auto sys = globals.display_system;
+
+    float w = (float)sys->target_width;
+    if (w < 1.0f) w = 1.0f;
+    float h = (float)sys->target_height;
+    if (h < 1.0f) h = 1.0f;
+    
+    Matrix4 m;
+    m.identity();
+    
+    m._11 = 2.0f/w;
+    m._22 = 2.0f/h;
+    m._14 = -1.0f;
+    m._24 = -1.0f;
+
+    sys->view_to_proj_matrix = m;
+
+    m.identity();
+
+    m._24 = y_offset;
+    
+    sys->world_to_view_matrix = m;
+    
     sys->object_to_world_matrix.identity();
     
     sys->refresh_transform();
@@ -247,7 +295,7 @@ static void draw_generated_quads(Dynamic_Font *font, Vector4 color) {
             sys->set_texture(0, map);
             last_texture = map;
         }
-
+        
         Vector2 p1 = quad.p0 + (quad.p1 - quad.p0) / 3;
         Vector2 p2 = quad.p3 + (quad.p2 - quad.p3) / 3;
 
@@ -273,8 +321,10 @@ void draw_text(Dynamic_Font *font, char *text, int x, int y, Vector4 color) {
 
 static void draw_hud() {
     auto sys = globals.display_system;
-
+    
     int start_y = sys->target_height;
+
+    rendering_2d_right_handed_with_y_offset(draw_y_offset_due_to_scrolling);
     
     //
     // Draw time
@@ -321,8 +371,12 @@ static void draw_hud() {
         if (do_button(font, text, x, y, width, height, default_button_theme) == Button_State::LEFT_PRESSED) {
             log("Adding employee.\n");
 
-            Employee *employee = add_employee("Надя Любомирова Цветкова");
-            auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
+            for (int i = 0; i < 10; i++) {
+                Employee *employee = add_employee("Надя Любомирова Цветкова");
+                auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
+                info = employee->add_vacation_info(5, 5, 6, 6, 2023);
+                info = employee->add_vacation_info(5, 5, 6, 6, 2023);
+            }
         }
     }
     
@@ -380,6 +434,8 @@ static void draw_hud() {
                 y -= font->character_height - font->typical_descender;
             }
         }
+
+        bottom_y_after_drawing = (float)(y - right_click_height);
     }
 
     if (should_draw_right_click_options && currently_right_clicked_employee) {
@@ -414,27 +470,10 @@ static void draw_hud() {
 
             y0 += font->character_height * 2;
         }
+    }
 
-        /*
-        char *text = "Remove";
-            
-        int text_width = font->get_text_width(text);
-
-        int width  = text_width * 2;
-        int height = font->character_height * 2;
-
-        int x0 = right_click_x;
-        int y0 = right_click_y - height;
-
-        if (do_button(font, text, x0, y0, width, height, default_button_theme) == Button_State::LEFT_PRESSED) {
-        int employee_index = all_employees.find(currently_right_clicked_employee);
-            if (employee_index != -1) {
-                all_employees.ordered_remove_by_index(employee_index);
-            }
-
-            disable_right_click_options();
-        }
-        */
+    if (is_key_pressed(MOUSE_BUTTON_LEFT) && should_draw_right_click_options) {
+        disable_right_click_options();
     }
 }
 
@@ -446,24 +485,6 @@ void draw_game_view() {
     
     sys->set_render_targets(sys->offscreen_buffer, NULL);
     sys->clear_render_target(1, 224.0f/255.0f, 228.0f/255.0f, 1);
-    
-    /*
-    //
-    // Draw background
-    //
-    rendering_2d_right_handed();
-    sys->set_shader(globals.shader_texture);
-    
-    auto texture = globals.texture_catalog->get_by_name("background");
-    sys->set_texture(0, texture);
-
-    Vector2 pos(0, 0);
-    Vector2 size((float)sys->target_width, (float)sys->target_height);
-    
-    sys->immediate_begin();
-    draw_quad(pos, size, Vector4(1, 1, 1, 1));
-    sys->immediate_flush();
-    */
 
     draw_hud();
     

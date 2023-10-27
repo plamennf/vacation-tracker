@@ -6,10 +6,18 @@ struct Shader;
 struct Shader_Catalog;
 struct Texture_Catalog;
 
+struct Time_Info {
+    double last_time = 0.0;
+
+    double current_dt = 0.0;
+};
+
 struct Globals {
     Display_System *display_system = NULL;
     bool should_quit_game = false;
 
+    Time_Info time_info;
+    
     Shader_Catalog  *shader_catalog = NULL;
     Texture_Catalog *texture_catalog = NULL;
     

@@ -13,7 +13,7 @@ extern Button_Theme default_button_theme;
 
 void init_hud_themes();
 void hud_declare_occlusion(int x, int y, int width, int height);
-void hud_remove_occlusion();
+void hud_remove_occlusion(int num_frame_to_wait = 0);
 
 enum class Button_State {
     NONE,

@@ -28,6 +28,14 @@ bool was_key_just_released(int key_code) {
     return key_states[key_code].was_down && !key_states[key_code].is_down;
 }
 
+static void update_time() {
+    double now = os_get_time();
+    double delta = now - globals.time_info.last_time;
+    globals.time_info.last_time = now;
+
+    globals.time_info.current_dt = delta;
+}
+
 int main(int argc, char **argv) {
     os_init_colors_and_utf8();
 
@@ -60,9 +68,13 @@ int main(int argc, char **argv) {
     defer { delete globals.texture_catalog; };
     
     init_shaders();
+
+    globals.time_info.last_time = os_get_time();
     
     while (!globals.should_quit_game) {
         auto sys = globals.display_system;
+
+        update_time();
         
         for (int i = 0; i < ArrayCount(key_states); i++) {
             auto ks = &key_states[i];
@@ -72,17 +84,24 @@ int main(int argc, char **argv) {
         sys->update_window_events();
         for (auto event : sys->events_this_frame) {
             switch (event.type) {
-            case EVENT_TYPE_QUIT:
-                globals.should_quit_game = true;
-                break;
+                case EVENT_TYPE_QUIT:
+                    globals.should_quit_game = true;
+                    break;
 
-            case EVENT_TYPE_KEYBOARD: {
-                auto ks     = &key_states[event.key_code];
-                ks->changed = ks->is_down != event.key_pressed;
-                ks->is_down = event.key_pressed;
+                case EVENT_TYPE_KEYBOARD: {
+                    auto ks     = &key_states[event.key_code];
+                    ks->changed = ks->is_down != event.key_pressed;
+                    ks->is_down = event.key_pressed;
                 
-                break;
-            }
+                    break;
+                }
+
+                case EVENT_TYPE_MOUSE_WHEEL: {
+                    int num_ticks = event.wheel_delta / event.typical_wheel_delta;
+                    if (num_ticks) {
+                        handle_mouse_wheel_event(num_ticks);
+                    }
+                } break;
             }
         }
         

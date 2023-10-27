@@ -10,34 +10,34 @@ static Key_Code vk_code_to_key_code(u32 vk_code) {
     if (vk_code >= 48 && vk_code <= 90) return (Key_Code) vk_code;
 
     switch (vk_code) {
-    case VK_BACK: return KEY_BACKSPACE;
-    case VK_TAB: return KEY_TAB;
-    case VK_ESCAPE: return KEY_ESCAPE;
-    case VK_SPACE: return KEY_SPACE;
+        case VK_BACK: return KEY_BACKSPACE;
+        case VK_TAB: return KEY_TAB;
+        case VK_ESCAPE: return KEY_ESCAPE;
+        case VK_SPACE: return KEY_SPACE;
 
-    case VK_F1: return KEY_F1;
-    case VK_F2: return KEY_F2;
-    case VK_F3: return KEY_F3;
-    case VK_F4: return KEY_F4;
-    case VK_F5: return KEY_F5;
-    case VK_F6: return KEY_F6;
-    case VK_F7: return KEY_F7;
-    case VK_F8: return KEY_F8;
-    case VK_F9: return KEY_F9;
-    case VK_F10: return KEY_F10;
-    case VK_F11: return KEY_F11;
-    case VK_F12: return KEY_F12;
+        case VK_F1: return KEY_F1;
+        case VK_F2: return KEY_F2;
+        case VK_F3: return KEY_F3;
+        case VK_F4: return KEY_F4;
+        case VK_F5: return KEY_F5;
+        case VK_F6: return KEY_F6;
+        case VK_F7: return KEY_F7;
+        case VK_F8: return KEY_F8;
+        case VK_F9: return KEY_F9;
+        case VK_F10: return KEY_F10;
+        case VK_F11: return KEY_F11;
+        case VK_F12: return KEY_F12;
 
-    case VK_RETURN: return KEY_ENTER;
+        case VK_RETURN: return KEY_ENTER;
 
-    case VK_SHIFT: return KEY_SHIFT;
-    case VK_CONTROL: return KEY_CTRL;
-    case VK_MENU: return KEY_ALT;
+        case VK_SHIFT: return KEY_SHIFT;
+        case VK_CONTROL: return KEY_CTRL;
+        case VK_MENU: return KEY_ALT;
 
-    case VK_UP: return KEY_UP;
-    case VK_DOWN: return KEY_DOWN;
-    case VK_RIGHT: return KEY_RIGHT;
-    case VK_LEFT: return KEY_LEFT;
+        case VK_UP: return KEY_UP;
+        case VK_DOWN: return KEY_DOWN;
+        case VK_RIGHT: return KEY_RIGHT;
+        case VK_LEFT: return KEY_LEFT;
     }
 
     return KEY_UNKNOWN;
@@ -47,93 +47,101 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     Display_System_D3D *sys = (Display_System_D3D *)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
     
     switch (msg) {
-    case WM_CREATE: {
-        CREATESTRUCTW *cs = (CREATESTRUCTW *)lParam;
-        SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)cs->lpCreateParams);
-        return DefWindowProcW(hwnd, msg, wParam, lParam);
-    }
-
-    case WM_CLOSE: {
-        Event event;
-        event.type = EVENT_TYPE_QUIT;
-        sys->events_this_frame.add(event);
-        break;
-    }
-
-    case WM_SIZE: {
-        RECT rect;
-        GetClientRect(hwnd, &rect);
-        int width  = rect.right  - rect.left;
-        int height = rect.bottom - rect.top;
-
-        sys->handle_resizes(width, height);
-        
-        break;
-    }
-
-    case WM_KEYDOWN:
-    case WM_KEYUP:
-    case WM_SYSKEYDOWN:
-    case WM_SYSKEYUP: {
-        u32 vk_code       = (u32)wParam;
-        Key_Code key_code = vk_code_to_key_code(vk_code);
-        bool is_down      = (lParam & (1 << 31)) == 0;
-        bool was_down     = (lParam & (1 << 30)) == 1;
-        
-        bool alt_pressed  = GetKeyState(VK_MENU) & 0x8000;
-
-        if (alt_pressed && is_down && !was_down) {
-            if (key_code == KEY_F4) {
-                Event event;
-                event.type = EVENT_TYPE_QUIT;
-                sys->events_this_frame.add(event);
-            } else if (key_code == KEY_ENTER) {
-                // sys->toggle_fullscreen();
-            }
+        case WM_CREATE: {
+            CREATESTRUCTW *cs = (CREATESTRUCTW *)lParam;
+            SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)cs->lpCreateParams);
+            return DefWindowProcW(hwnd, msg, wParam, lParam);
         }
 
-        Event event;
-        event.type        = EVENT_TYPE_KEYBOARD;
-        event.key_code    = key_code;
-        event.key_pressed = is_down;
-        event.is_repeat   = is_down == was_down;
-        event.alt_pressed = alt_pressed;
-        sys->events_this_frame.add(event);
-        
-        break;
-    }
+        case WM_CLOSE: {
+            Event event;
+            event.type = EVENT_TYPE_QUIT;
+            sys->events_this_frame.add(event);
+            break;
+        }
 
-    case WM_LBUTTONDOWN:
-    case WM_LBUTTONUP: {
-        bool alt_pressed  = GetKeyState(VK_MENU) & 0x8000;
-        
-        Event event;
-        event.type        = EVENT_TYPE_KEYBOARD;
-        event.key_code    = MOUSE_BUTTON_LEFT;
-        event.key_pressed = msg == WM_LBUTTONDOWN;
-        event.is_repeat   = false;
-        event.alt_pressed = alt_pressed;
-        sys->events_this_frame.add(event);
-        
-        break;
-    }
+        case WM_SIZE: {
+            RECT rect;
+            GetClientRect(hwnd, &rect);
+            int width  = rect.right  - rect.left;
+            int height = rect.bottom - rect.top;
 
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP: {
-        bool alt_pressed  = GetKeyState(VK_MENU) & 0x8000;
+            sys->handle_resizes(width, height);
         
-        Event event;
-        event.type        = EVENT_TYPE_KEYBOARD;
-        event.key_code    = MOUSE_BUTTON_RIGHT;
-        event.key_pressed = msg == WM_RBUTTONDOWN;
-        event.is_repeat   = false;
-        event.alt_pressed = alt_pressed;
-        sys->events_this_frame.add(event);
+            break;
+        }
+
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP: {
+            u32 vk_code       = (u32)wParam;
+            Key_Code key_code = vk_code_to_key_code(vk_code);
+            bool is_down      = (lParam & (1 << 31)) == 0;
+            bool was_down     = (lParam & (1 << 30)) == 1;
         
-        break;
-    }
+            bool alt_pressed  = GetKeyState(VK_MENU) & 0x8000;
+
+            if (alt_pressed && is_down && !was_down) {
+                if (key_code == KEY_F4) {
+                    Event event;
+                    event.type = EVENT_TYPE_QUIT;
+                    sys->events_this_frame.add(event);
+                } else if (key_code == KEY_ENTER) {
+                    // sys->toggle_fullscreen();
+                }
+            }
+
+            Event event;
+            event.type        = EVENT_TYPE_KEYBOARD;
+            event.key_code    = key_code;
+            event.key_pressed = is_down;
+            event.is_repeat   = is_down == was_down;
+            event.alt_pressed = alt_pressed;
+            sys->events_this_frame.add(event);
         
-    default: return DefWindowProcW(hwnd, msg, wParam, lParam);
+            break;
+        }
+
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONUP: {
+            bool alt_pressed  = GetKeyState(VK_MENU) & 0x8000;
+        
+            Event event;
+            event.type        = EVENT_TYPE_KEYBOARD;
+            event.key_code    = MOUSE_BUTTON_LEFT;
+            event.key_pressed = msg == WM_LBUTTONDOWN;
+            event.is_repeat   = false;
+            event.alt_pressed = alt_pressed;
+            sys->events_this_frame.add(event);
+        
+            break;
+        }
+
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONUP: {
+            bool alt_pressed  = GetKeyState(VK_MENU) & 0x8000;
+        
+            Event event;
+            event.type        = EVENT_TYPE_KEYBOARD;
+            event.key_code    = MOUSE_BUTTON_RIGHT;
+            event.key_pressed = msg == WM_RBUTTONDOWN;
+            event.is_repeat   = false;
+            event.alt_pressed = alt_pressed;
+            sys->events_this_frame.add(event);
+        
+            break;
+        }
+
+        case WM_MOUSEWHEEL: {
+            Event event;
+            event.type                = EVENT_TYPE_MOUSE_WHEEL;
+            event.typical_wheel_delta = WHEEL_DELTA;
+            event.wheel_delta         = (short)(wParam >> 16);
+            sys->events_this_frame.add(event);
+        } break;
+        
+        default: return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
     
     return 0;

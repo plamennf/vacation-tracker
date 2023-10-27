@@ -27,7 +27,7 @@ void hud_declare_occlusion(int x, int y, int width, int height) {
     occlusion_height  = height;
 }
 
-void hud_remove_occlusion() {
+void hud_remove_occlusion(int num_frames_to_wait) {
     occlusion_enabled = false;
 }
 
@@ -40,6 +40,8 @@ Button_State do_button(Dynamic_Font *font, char *text, int x, int y, int width, 
     int offset_x = sys->offset_offscreen_to_back_buffer_x;
     int offset_y = sys->offset_offscreen_to_back_buffer_y;
 
+    offset_y += (int)draw_y_offset_due_to_scrolling;
+    
     Vector4 color = theme.bg_color;
     Button_State state = Button_State::NONE;
     
@@ -71,13 +73,13 @@ Button_State do_button(Dynamic_Font *font, char *text, int x, int y, int width, 
         }
     }
         
-    rendering_2d_right_handed();
+    rendering_2d_right_handed_with_y_offset(draw_y_offset_due_to_scrolling);
     sys->set_shader(globals.shader_color);
     
     sys->immediate_begin();
     draw_quad(Vector2((float)x, (float)y), Vector2((float)width, (float)height), color);
     sys->immediate_flush();
-
+    
     int tx = x + ((width  - font->get_text_width(text)) / 2);
     int ty = y + ((height - font->character_height) / 2) + (font->y_offset_for_centering / 2);
     
