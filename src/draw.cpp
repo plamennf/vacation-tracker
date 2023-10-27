@@ -19,6 +19,8 @@ static int right_click_prev_target_width, right_click_prev_target_height;
 float draw_y_offset_due_to_scrolling = 0.0f;
 static float bottom_y_after_drawing = 0.0f;
 
+static float scroll_delta_speed = 20.0f;
+
 static char *right_click_options[] = {
     "Премахни",
     "Преименувай",
@@ -154,7 +156,7 @@ void handle_resizes() {
 }
 
 void handle_mouse_wheel_event(int num_ticks) {
-    draw_y_offset_due_to_scrolling -= num_ticks * 10.0f;
+    draw_y_offset_due_to_scrolling -= num_ticks * scroll_delta_speed;
     if (draw_y_offset_due_to_scrolling < 0.0f) draw_y_offset_due_to_scrolling = 0.0f;
     if (draw_y_offset_due_to_scrolling > -bottom_y_after_drawing) draw_y_offset_due_to_scrolling = -bottom_y_after_drawing;
 }
@@ -452,7 +454,9 @@ static void draw_hud() {
         for (int i = ArrayCount(right_click_options) - 1; i >= 0; i--) {
             char *option = right_click_options[i];
 
-            auto state = do_button(font, option, x0, y0, right_click_width, height, default_button_theme, true);
+            auto theme = default_button_theme;
+            theme.press_requirement = BUTTON_SHOULD_BE_PRESSED;
+            auto state = do_button(font, option, x0, y0, right_click_width, height, theme, true);
             if (state == Button_State::LEFT_PRESSED) {
                 disable_right_click_options();
                 

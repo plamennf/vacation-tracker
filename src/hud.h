@@ -1,12 +1,18 @@
 #pragma once
 
+enum Button_Press_Requirement {
+    BUTTON_SHOULD_BE_PRESSED,
+    BUTTON_SHOULD_BE_RELEASED,
+};
+
 struct Button_Theme {
     Vector4 bg_color;
     Vector4 text_color;
     Vector4 hovered_bg_color;
     Vector4 pressed_bg_color;
 
-    bool allow_right_clicks;
+    bool                     allow_right_clicks = false;
+    Button_Press_Requirement press_requirement  = BUTTON_SHOULD_BE_RELEASED;
 };
 
 extern Button_Theme default_button_theme;
