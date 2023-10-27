@@ -31,18 +31,6 @@ void hud_remove_occlusion(int num_frames_to_wait) {
     occlusion_enabled = false;
 }
 
-static bool is_pressed(Button_Theme theme, int key_code) {
-    switch (theme.press_requirement) {
-        case BUTTON_SHOULD_BE_PRESSED: {
-            if (is_key_pressed(key_code)) return true;
-        } break;
-
-        case BUTTON_SHOULD_BE_RELEASED: {
-            if (was_key_just_released(key_code)) return true;
-        } break;
-    }
-}
-
 Button_State do_button(Dynamic_Font *font, char *text, int x, int y, int width, int height, Button_Theme theme, bool bypasses_occlusion) {
     auto sys = globals.display_system;
     
@@ -63,9 +51,9 @@ Button_State do_button(Dynamic_Font *font, char *text, int x, int y, int width, 
     } else {
         if ((mx >= x + offset_x) && (mx <= x + offset_x + width) &&
             (my >= y + offset_y) && (my <= y + offset_y + height)) {
-            if (is_pressed(theme, MOUSE_BUTTON_LEFT))  state = Button_State::LEFT_PRESSED;
+            if (was_key_just_released(MOUSE_BUTTON_LEFT))  state = Button_State::LEFT_PRESSED;
             if (theme.allow_right_clicks) {
-                if (is_pressed(theme, MOUSE_BUTTON_RIGHT)) state = Button_State::RIGHT_PRESSED;
+                if (was_key_just_released(MOUSE_BUTTON_RIGHT)) state = Button_State::RIGHT_PRESSED;
             }
 
             if (theme.allow_right_clicks) {

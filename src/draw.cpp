@@ -119,6 +119,24 @@ static void calculate_right_click_bounds(int mx, int my) {
     hud_declare_occlusion(right_click_x, right_click_y, right_click_width, right_click_height);
 }
 
+static bool mouse_is_within_right_click_options() {
+    int mx, my;
+    auto sys = globals.display_system;
+    sys->get_mouse_pointer_position(&mx, &my);
+
+    int offset_x = sys->offset_offscreen_to_back_buffer_x;
+    int offset_y = sys->offset_offscreen_to_back_buffer_y;
+
+    offset_y += (int)draw_y_offset_due_to_scrolling;
+    
+    if ((mx >= right_click_x + offset_x) && (mx <= right_click_x + right_click_width  + offset_x) &&
+        (my >= right_click_y + offset_y) && (my <= right_click_y + right_click_height + offset_y)) {
+        return true;
+    }
+
+    return false;
+}
+
 static void enable_right_click_options(Employee *employee) {
     should_draw_right_click_options = true;
     currently_right_clicked_employee = employee;
@@ -158,7 +176,10 @@ void handle_resizes() {
 void handle_mouse_wheel_event(int num_ticks) {
     draw_y_offset_due_to_scrolling -= num_ticks * scroll_delta_speed;
     if (draw_y_offset_due_to_scrolling < 0.0f) draw_y_offset_due_to_scrolling = 0.0f;
-    if (draw_y_offset_due_to_scrolling > -bottom_y_after_drawing) draw_y_offset_due_to_scrolling = -bottom_y_after_drawing;
+
+    float bottom_border = -bottom_y_after_drawing;
+    if (bottom_border < 0.0f) bottom_border = 0.0f;
+    if (draw_y_offset_due_to_scrolling > bottom_border) draw_y_offset_due_to_scrolling = bottom_border;
 }
 
 void init_shaders() {
@@ -438,6 +459,14 @@ static void draw_hud() {
         }
 
         bottom_y_after_drawing = (float)(y - right_click_height);
+
+        /*
+        if (y > 0) {
+            bottom_y_after_drawing = (float)(y - right_click_height);
+        } else {
+            bottom_y_after_drawing = 0.0f;
+        }
+        */
     }
 
     if (should_draw_right_click_options && currently_right_clicked_employee) {
@@ -455,7 +484,7 @@ static void draw_hud() {
             char *option = right_click_options[i];
 
             auto theme = default_button_theme;
-            theme.press_requirement = BUTTON_SHOULD_BE_PRESSED;
+            //theme.press_requirement = BUTTON_SHOULD_BE_PRESSED;
             auto state = do_button(font, option, x0, y0, right_click_width, height, theme, true);
             if (state == Button_State::LEFT_PRESSED) {
                 disable_right_click_options();
@@ -475,8 +504,8 @@ static void draw_hud() {
             y0 += font->character_height * 2;
         }
     }
-
-    if (is_key_pressed(MOUSE_BUTTON_LEFT) && should_draw_right_click_options) {
+    
+    if (is_key_pressed(MOUSE_BUTTON_LEFT) && should_draw_right_click_options && !mouse_is_within_right_click_options()) {
         disable_right_click_options();
     }
 }
