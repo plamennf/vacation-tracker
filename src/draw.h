@@ -11,6 +11,7 @@ void rendering_2d_right_handed_with_y_offset(float y_offset);
 
 void handle_resizes();
 void handle_mouse_wheel_event(int num_ticks);
+void handle_event(Event event);
 
 void resolve_to_back_buffer();
 

@@ -9,6 +9,7 @@ struct Texture_Catalog;
 struct Time_Info {
     double last_time = 0.0;
 
+    double current_real_world_time = 0.0;
     double current_dt = 0.0;
 };
 

@@ -216,6 +216,32 @@ int get_codepoint(char *text, int *bytes_processed) {
     return code;
 }
 
+int get_utf8(char *text, int utf32) {
+    if (utf32 <= 0x7F) {
+        text[0] = utf32;
+        return 1;
+    }
+    if (utf32 <= 0x7FF) {
+        text[0] = 0xC0 | (utf32 >> 6);            /* 110xxxxx */
+        text[1] = 0x80 | (utf32 & 0x3F);          /* 10xxxxxx */
+        return 2;
+    }
+    if (utf32 <= 0xFFFF) {
+        text[0] = 0xE0 | (utf32 >> 12);           /* 1110xxxx */
+        text[1] = 0x80 | ((utf32 >> 6) & 0x3F);   /* 10xxxxxx */
+        text[2] = 0x80 | (utf32 & 0x3F);          /* 10xxxxxx */
+        return 3;
+    }
+    if (utf32 <= 0x10FFFF) {
+        text[0] = 0xF0 | (utf32 >> 18);           /* 11110xxx */
+        text[1] = 0x80 | ((utf32 >> 12) & 0x3F);  /* 10xxxxxx */
+        text[2] = 0x80 | ((utf32 >> 6) & 0x3F);   /* 10xxxxxx */
+        text[3] = 0x80 | (utf32 & 0x3F);          /* 10xxxxxx */
+        return 4;
+    }
+    return 0;
+}
+
 void Memory_Arena::init(s64 size) {
     max_size = size;
     data = new u8[size];

@@ -61,6 +61,7 @@ char *eat_spaces(char *s);
 char *eat_trailing_spaces(char *s);
 char *consume_next_line(char **text_ptr);
 int get_codepoint(char *text, int *bytes_processed);
+int get_utf8(char *text, int utf32);
 
 void log(char *fmt, ...);
 void log_error(char *fmt, ...);

@@ -34,6 +34,7 @@ static void update_time() {
     globals.time_info.last_time = now;
 
     globals.time_info.current_dt = delta;
+    globals.time_info.current_real_world_time += delta;
 }
 
 int main(int argc, char **argv) {
@@ -103,6 +104,7 @@ int main(int argc, char **argv) {
                     }
                 } break;
             }
+            handle_event(event);
         }
         
         draw_game_view();

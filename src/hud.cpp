@@ -31,6 +31,28 @@ void hud_remove_occlusion(int num_frames_to_wait) {
     occlusion_enabled = false;
 }
 
+static bool mouse_is_in_occluded_region() {
+    auto sys = globals.display_system;
+    
+    int mx, my;
+    sys->get_mouse_pointer_position(&mx, &my);
+
+    int offset_x = sys->offset_offscreen_to_back_buffer_x;
+    int offset_y = sys->offset_offscreen_to_back_buffer_y;
+
+    offset_y += (int)draw_y_offset_due_to_scrolling;
+
+    return (mx >= occlusion_x + offset_x) && (mx <= occlusion_x + occlusion_width  + offset_x) &&
+        (my >= occlusion_y + offset_y) && (my <= occlusion_y + occlusion_height + offset_y);
+}
+
+static bool button_fits_into_occluded_region(int x, int y, int width, int height) {
+    return ((x + width  <= occlusion_x + occlusion_width) &&
+            (y + height <= occlusion_y + occlusion_height) &&
+            (x >= occlusion_x) &&
+            (y >= occlusion_y));
+}
+
 Button_State do_button(Dynamic_Font *font, char *text, int x, int y, int width, int height, Button_Theme theme, bool bypasses_occlusion) {
     auto sys = globals.display_system;
     
@@ -46,33 +68,35 @@ Button_State do_button(Dynamic_Font *font, char *text, int x, int y, int width, 
     Button_State state = Button_State::NONE;
     
     if (!bypasses_occlusion && occlusion_enabled &&
-        (mx >= occlusion_x + offset_x) && (mx <= occlusion_x + occlusion_width  + offset_x) &&
-        (my >= occlusion_y + offset_y) && (my <= occlusion_y + occlusion_height + offset_y)) {
+        !mouse_is_in_occluded_region()) {// && !button_fits_into_occluded_region(x, y, width, height)) {
     } else {
-        if ((mx >= x + offset_x) && (mx <= x + offset_x + width) &&
-            (my >= y + offset_y) && (my <= y + offset_y + height)) {
-            if (was_key_just_released(MOUSE_BUTTON_LEFT))  state = Button_State::LEFT_PRESSED;
-            if (theme.allow_right_clicks) {
-                if (was_key_just_released(MOUSE_BUTTON_RIGHT)) state = Button_State::RIGHT_PRESSED;
-            }
-
-            if (theme.allow_right_clicks) {
-                if ((is_key_down(MOUSE_BUTTON_LEFT && state != Button_State::LEFT_PRESSED)) ||
-                    (is_key_down(MOUSE_BUTTON_RIGHT && state != Button_State::RIGHT_PRESSED))) {
-                    color = theme.pressed_bg_color;
-                } else {
-                    color = theme.hovered_bg_color;
+        if ((occlusion_enabled && button_fits_into_occluded_region(x, y, width, height)) ||
+            !occlusion_enabled) {
+            if ((mx >= x + offset_x) && (mx <= x + offset_x + width) &&
+                (my >= y + offset_y) && (my <= y + offset_y + height)) {
+                if (was_key_just_released(MOUSE_BUTTON_LEFT))  state = Button_State::LEFT_PRESSED;
+                if (theme.allow_right_clicks) {
+                    if (was_key_just_released(MOUSE_BUTTON_RIGHT)) state = Button_State::RIGHT_PRESSED;
                 }
-            } else {
-                if (is_key_down(MOUSE_BUTTON_LEFT) && state != Button_State::LEFT_PRESSED) {
-                    color = theme.pressed_bg_color;
+                
+                if (theme.allow_right_clicks) {
+                    if ((is_key_down(MOUSE_BUTTON_LEFT && state != Button_State::LEFT_PRESSED)) ||
+                        (is_key_down(MOUSE_BUTTON_RIGHT && state != Button_State::RIGHT_PRESSED))) {
+                        color = theme.pressed_bg_color;
+                    } else {
+                        color = theme.hovered_bg_color;
+                    }
                 } else {
-                    color = theme.hovered_bg_color;
+                    if (is_key_down(MOUSE_BUTTON_LEFT) && state != Button_State::LEFT_PRESSED) {
+                        color = theme.pressed_bg_color;
+                    } else {
+                        color = theme.hovered_bg_color;
+                    }
                 }
             }
         }
     }
-        
+    
     rendering_2d_right_handed_with_y_offset(draw_y_offset_due_to_scrolling);
     sys->set_shader(globals.shader_color);
     

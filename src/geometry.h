@@ -332,6 +332,17 @@ inline Vector4 operator+(Vector4 a, Vector4 b) {
     return result;
 }
 
+inline Vector4 operator-(Vector4 a, Vector4 b) {
+    Vector4 result;
+
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+    result.z = a.z - b.z;
+    result.w = a.w - b.w;
+
+    return result;
+}
+
 inline Vector4 operator*(Vector4 a, float b) {
     Vector4 result;
 
@@ -341,6 +352,21 @@ inline Vector4 operator*(Vector4 a, float b) {
     result.w = a.w * b;
 
     return result;    
+}
+
+inline Vector4 operator*(float a, Vector4 b) {
+    Vector4 result;
+
+    result.x = a * b.x;
+    result.y = a * b.y;
+    result.z = a * b.z;
+    result.w = a * b.w;
+
+    return result;    
+}
+
+inline Vector4 lerp(Vector4 a, Vector4 b, float t) {
+    return a + t * (b - a);
 }
 
 inline u32 argb_color(Vector4 color) {

@@ -6,6 +6,10 @@
 #include <stdlib.h> // For exit.
 #include <string.h> // For strlen.
 
+static bool alt_state;
+static bool shift_state;
+static bool ctrl_state;
+
 static Key_Code vk_code_to_key_code(u32 vk_code) {
     if (vk_code >= 48 && vk_code <= 90) return (Key_Code) vk_code;
 
@@ -53,6 +57,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return DefWindowProcW(hwnd, msg, wParam, lParam);
         }
 
+        case WM_SYSCHAR: {
+            
+        } break;
+
         case WM_CLOSE: {
             Event event;
             event.type = EVENT_TYPE_QUIT;
@@ -79,10 +87,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             Key_Code key_code = vk_code_to_key_code(vk_code);
             bool is_down      = (lParam & (1 << 31)) == 0;
             bool was_down     = (lParam & (1 << 30)) == 1;
-        
-            bool alt_pressed  = GetKeyState(VK_MENU) & 0x8000;
 
-            if (alt_pressed && is_down && !was_down) {
+            if (vk_code == VK_MENU)    alt_state   = is_down;
+            if (vk_code == VK_SHIFT)   shift_state = is_down;
+            if (vk_code == VK_CONTROL) ctrl_state  = is_down;
+
+            if (alt_state && is_down && !was_down) {
                 if (key_code == KEY_F4) {
                     Event event;
                     event.type = EVENT_TYPE_QUIT;
@@ -97,12 +107,34 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             event.key_code    = key_code;
             event.key_pressed = is_down;
             event.is_repeat   = is_down == was_down;
-            event.alt_pressed = alt_pressed;
+            event.alt_pressed = alt_state;
             sys->events_this_frame.add(event);
         
             break;
         }
 
+        case WM_CHAR: {
+            u32 keycode = (u32)wParam;
+            
+            bool altgr_keycode = (keycode == '~'  || keycode == '#' || keycode == '{' ||
+                                  keycode == '['  || keycode == '|' || keycode == '`' ||
+                                  keycode == '\\' || keycode == '^' || keycode == '@' ||
+                                  keycode == ']'  || keycode == '}' || keycode == ';' ||
+                                  keycode == '<'  || keycode == '>' || keycode == '$' ||
+                                  keycode == '&'  || keycode == '*');
+
+            if (keycode > 31 && keycode < 127 && !(ctrl_state || alt_state) || (altgr_keycode && alt_state) || keycode > 255) {
+                // Control characters generate key codes < 32, but these are redundant
+                // with KEYDOWN events and are also ambiguous (ctrl-m generates 13, but
+                // so does RETURN.)
+                Event event;
+                event.type  = EVENT_TYPE_TEXT_INPUT;
+                event.utf32 = (int)keycode;
+                
+                sys->events_this_frame.add(event);
+            }
+        } break;
+            
         case WM_LBUTTONDOWN:
         case WM_LBUTTONUP: {
             bool alt_pressed  = GetKeyState(VK_MENU) & 0x8000;
@@ -140,7 +172,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             event.wheel_delta         = (short)(wParam >> 16);
             sys->events_this_frame.add(event);
         } break;
-        
+            
         default: return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
     

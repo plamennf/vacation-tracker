@@ -4,6 +4,7 @@
 #include "hud.h"
 #include "os_specific.h"
 #include "vacation.h"
+#include "text_input.h"
 
 #include "shader_catalog.h"
 #include "texture_catalog.h"
@@ -20,6 +21,9 @@ float draw_y_offset_due_to_scrolling = 0.0f;
 static float bottom_y_after_drawing = 0.0f;
 
 static float scroll_delta_speed = 20.0f;
+
+static Text_Input employee_name_text_input;
+static bool should_draw_employee_name_text_input;
 
 static char *right_click_options[] = {
     "Премахни",
@@ -153,6 +157,17 @@ static void disable_right_click_options() {
     hud_remove_occlusion();
 }
 
+static void enable_employee_name_text_input() {
+    should_draw_employee_name_text_input = true;
+    employee_name_text_input.activate();
+}
+
+static void disable_employee_name_text_input() {
+    should_draw_employee_name_text_input = false;
+    employee_name_text_input.deactivate();
+    hud_remove_occlusion();
+}
+
 static void resize_right_click_options() {
     if (!right_click_prev_target_width || !right_click_prev_target_height) return;
     
@@ -180,6 +195,12 @@ void handle_mouse_wheel_event(int num_ticks) {
     float bottom_border = -bottom_y_after_drawing;
     if (bottom_border < 0.0f) bottom_border = 0.0f;
     if (draw_y_offset_due_to_scrolling > bottom_border) draw_y_offset_due_to_scrolling = bottom_border;
+}
+
+void handle_event(Event event) {
+    if (should_draw_employee_name_text_input) {
+        employee_name_text_input.handle_event(event);
+    }
 }
 
 void init_shaders() {
@@ -295,6 +316,17 @@ void draw_quad(Vector2 position, Vector2 size, Vector4 color) {
 
     auto sys = globals.display_system;
     sys->immediate_quad(p0, p1, p2, p3, color);
+}
+
+void draw_quad_with_border(Vector2 position, Vector2 size, Vector4 color, float border_size, Vector4 border_color) {
+    int border_size_in_pixels = (int)(border_size * size.y);
+    Vector2 border_size_in_pixels_v((float)border_size_in_pixels, (float)border_size_in_pixels);
+    
+    Vector2 border_size_v   = size     + (border_size_in_pixels_v*2.0f);
+    Vector2 border_position = position - border_size_in_pixels_v;
+    
+    draw_quad(border_position, border_size_v, border_color);
+    draw_quad(position, size, color);
 }
 
 static void draw_generated_quads(Dynamic_Font *font, Vector4 color) {
@@ -484,8 +516,8 @@ static void draw_hud() {
             char *option = right_click_options[i];
 
             auto theme = default_button_theme;
-            //theme.press_requirement = BUTTON_SHOULD_BE_PRESSED;
-            auto state = do_button(font, option, x0, y0, right_click_width, height, theme, true);
+            bool bypass_occlusion = !should_draw_employee_name_text_input;
+            auto state = do_button(font, option, x0, y0, right_click_width, height, theme, bypass_occlusion);
             if (state == Button_State::LEFT_PRESSED) {
                 disable_right_click_options();
                 
@@ -495,7 +527,7 @@ static void draw_hud() {
                         all_employees.ordered_remove_by_index(employee_index);
                     }
                 } else if (strings_match_unicode(option, "Преименувай")) {
-                    
+                    enable_employee_name_text_input();
                 } else if (strings_match_unicode(option, "Добави отпуска")) {
                     auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
                 }
@@ -507,6 +539,35 @@ static void draw_hud() {
     
     if (is_key_pressed(MOUSE_BUTTON_LEFT) && should_draw_right_click_options && !mouse_is_within_right_click_options()) {
         disable_right_click_options();
+    }
+
+    if (should_draw_employee_name_text_input) {
+        int font_size = (int)(0.05f * sys->target_height);
+        auto font = get_font_at_size("OpenSans-Regular", font_size);
+        
+        int width  = (int)(0.5f * sys->target_width);
+        int height = font->character_height;
+
+        int x = (sys->target_width  - width)  / 2;
+        int y = (sys->target_height - height) / 2;
+
+        hud_declare_occlusion(x, y, width, height);
+        
+        rendering_2d_right_handed();
+        sys->set_shader(globals.shader_color);
+        
+        Vector4 color(0.1f, 0.1f, 0.9f, 1);
+        Vector4 border_color(0.011f, 0.01f, 0.96, 1);
+        
+        sys->immediate_begin();
+        draw_quad_with_border(Vector2((float)x, (float)y), Vector2((float)width, (float)height), color, 0.1f, border_color);
+        sys->immediate_flush();
+        
+        employee_name_text_input.draw(font, x, y, width, Vector4(1, 1, 1, 1));
+        
+        if (was_key_just_released(KEY_ENTER)) {
+            disable_employee_name_text_input();
+        }
     }
 }
 

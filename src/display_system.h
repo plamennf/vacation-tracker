@@ -45,6 +45,7 @@ enum Event_Type {
     EVENT_TYPE_QUIT,
     EVENT_TYPE_KEYBOARD,
     EVENT_TYPE_MOUSE_WHEEL,
+    EVENT_TYPE_TEXT_INPUT,
 };
 
 struct Event {
@@ -55,6 +56,8 @@ struct Event {
     bool is_repeat    = false;
     bool alt_pressed  = false;
 
+    int utf32         = 0;
+    
     int wheel_delta = 0;
     int typical_wheel_delta = 0;
 };
