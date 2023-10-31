@@ -129,4 +129,17 @@ double os_get_time() {
     return (double)perf_counter.QuadPart / (double)perf_freq.QuadPart;
 }
 
+void os_show_message_box(char *caption, char *text, bool error) {
+    wchar_t wide_caption[4096], wide_text[4096];
+    MultiByteToWideChar(CP_UTF8, 0, caption, -1, wide_caption, ArrayCount(wide_caption));
+    MultiByteToWideChar(CP_UTF8, 0, text,    -1, wide_text,    ArrayCount(wide_text));
+
+    int flags = MB_OK;
+    if (error) {
+        flags |= MB_ICONERROR;
+    }
+    
+    MessageBoxW(NULL, wide_text, wide_caption, flags);
+}
+
 #endif

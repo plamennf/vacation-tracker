@@ -22,8 +22,19 @@ static float bottom_y_after_drawing = 0.0f;
 
 static float scroll_delta_speed = 20.0f;
 
+enum Employee_Name_State {
+    EMPLOYEE_NAME_FOR_ADDING,
+    EMPLOYEE_NAME_FOR_RENAMING,
+};
+
 static Text_Input employee_name_text_input;
 static bool should_draw_employee_name_text_input;
+static Employee_Name_State employee_name_state;
+
+static bool should_draw_employee_info_text_input;
+static Text_Input vacation_info_from_text_input;
+static Text_Input vacation_info_to_text_input;
+static int currently_selected_text_input = 0; // 0 - from, 1 - to
 
 static char *right_click_options[] = {
     "Премахни",
@@ -157,14 +168,36 @@ static void disable_right_click_options() {
     hud_remove_occlusion();
 }
 
-static void enable_employee_name_text_input() {
+static void enable_employee_name_text_input(Employee_Name_State state) {
     should_draw_employee_name_text_input = true;
+    employee_name_text_input.reset();
     employee_name_text_input.activate();
+
+    employee_name_state = state;
 }
 
 static void disable_employee_name_text_input() {
     should_draw_employee_name_text_input = false;
     employee_name_text_input.deactivate();
+    hud_remove_occlusion();
+}
+
+static void enable_employee_info_text_input() {
+    should_draw_employee_info_text_input = true;
+
+    vacation_info_from_text_input.reset();
+    vacation_info_from_text_input.activate();
+
+    vacation_info_to_text_input.reset();
+    //vacation_info_to_text_input.activate();
+}
+
+static void disable_employee_info_text_input() {
+    should_draw_employee_info_text_input = false;
+
+    vacation_info_from_text_input.deactivate();
+    vacation_info_to_text_input.deactivate();
+    
     hud_remove_occlusion();
 }
 
@@ -200,6 +233,14 @@ void handle_mouse_wheel_event(int num_ticks) {
 void handle_event(Event event) {
     if (should_draw_employee_name_text_input) {
         employee_name_text_input.handle_event(event);
+    }
+
+    if (should_draw_employee_info_text_input) {
+        if (currently_selected_text_input == 0) {
+            vacation_info_from_text_input.handle_event(event);
+        } else if (currently_selected_text_input == 1) {
+            vacation_info_to_text_input.handle_event(event);
+        }
     }
 }
 
@@ -374,6 +415,21 @@ void draw_text(Dynamic_Font *font, char *text, int x, int y, Vector4 color) {
     draw_prepared_text(font, x, y, color);
 }
 
+static char *get_longest_employee_name() {
+    char *longest = NULL;
+    int longest_length = 0;
+    
+    for (auto employee : all_employees) {
+        int name_length = string_length_unicode(employee->name);
+        if (name_length > longest_length) {
+            longest_length = name_length;
+            longest = employee->name;
+        }
+    }
+    
+    return longest;
+}
+
 static void draw_hud() {
     auto sys = globals.display_system;
     
@@ -422,16 +478,10 @@ static void draw_hud() {
         
         int x = sys->target_width  - offset - width;
         int y = sys->target_height - offset - height;
-
+        
         if (do_button(font, text, x, y, width, height, default_button_theme) == Button_State::LEFT_PRESSED) {
             log("Adding employee.\n");
-
-            for (int i = 0; i < 10; i++) {
-                Employee *employee = add_employee("Надя Любомирова Цветкова");
-                auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
-                info = employee->add_vacation_info(5, 5, 6, 6, 2023);
-                info = employee->add_vacation_info(5, 5, 6, 6, 2023);
-            }
+            enable_employee_name_text_input(EMPLOYEE_NAME_FOR_ADDING);
         }
     }
     
@@ -448,11 +498,13 @@ static void draw_hud() {
         int x = pad;
         int y = start_y;
         
+        char *longest_name = get_longest_employee_name();
+        
         int offset = font->character_height / 40;
         for (auto employee : all_employees) {
             char *text = employee->name;
             
-            int text_width = font->get_text_width(text);
+            int text_width = font->get_text_width(longest_name);
 
             int width  = text_width * 2;
             int height = font->character_height * 2;
@@ -479,7 +531,7 @@ static void draw_hud() {
             if (!employee->draw_all_vacations_on_hud) continue;
 
             for (auto info : employee->vacations) {
-                char *text = mprintf("От %d.%d.%dг. до %d.%d.%dг.", info.from_day, info.from_month, info.year, info.to_day, info.to_month, info.year);
+                char *text = mprintf("От %d.%d.%dг. до %d.%d.%dг.", info.from_day, info.from_month, info.from_year, info.to_day, info.to_month, info.to_year);
                 defer { delete [] text; };
 
                 y0 = y - font->character_height;
@@ -527,9 +579,15 @@ static void draw_hud() {
                         all_employees.ordered_remove_by_index(employee_index);
                     }
                 } else if (strings_match_unicode(option, "Преименувай")) {
-                    enable_employee_name_text_input();
+                    enable_employee_name_text_input(EMPLOYEE_NAME_FOR_RENAMING);
+
+                    auto employee = currently_right_clicked_employee;
+                    if (employee) {
+                        employee_name_text_input.add_text(employee->name);
+                    }
                 } else if (strings_match_unicode(option, "Добави отпуска")) {
-                    auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
+                    //auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
+                    enable_employee_info_text_input();
                 }
             }
 
@@ -542,6 +600,8 @@ static void draw_hud() {
     }
 
     if (should_draw_employee_name_text_input) {
+        assert(!should_draw_employee_info_text_input);
+        
         int font_size = (int)(0.05f * sys->target_height);
         auto font = get_font_at_size("OpenSans-Regular", font_size);
         
@@ -566,7 +626,135 @@ static void draw_hud() {
         employee_name_text_input.draw(font, x, y, width, Vector4(1, 1, 1, 1));
         
         if (was_key_just_released(KEY_ENTER)) {
+            auto state = employee_name_state;
             disable_employee_name_text_input();
+
+            if (state == EMPLOYEE_NAME_FOR_ADDING) {
+                Employee *employee = add_employee(employee_name_text_input.get_result()); // @Leak
+                //auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
+            } else if (state == EMPLOYEE_NAME_FOR_RENAMING) {
+                auto employee = currently_right_clicked_employee;
+                if (employee) {
+                    if (employee->name) {
+                        delete [] employee->name;
+                        employee->name = NULL;
+                    }
+
+                    employee->name = employee_name_text_input.get_result();
+                }
+            }
+        }
+    }
+
+    if (should_draw_employee_info_text_input) {
+        assert(!should_draw_employee_name_text_input);
+
+        if (is_key_pressed(KEY_TAB)) {
+            if (currently_selected_text_input == 0) {
+                currently_selected_text_input = 1;
+                vacation_info_from_text_input.deactivate();
+                vacation_info_to_text_input.activate();
+            } else if (currently_selected_text_input == 1) {
+                currently_selected_text_input = 0;
+                vacation_info_to_text_input.deactivate();
+                vacation_info_from_text_input.activate();
+            }
+        }
+        
+        int font_size = (int)(0.05f * sys->target_height);
+        auto font = get_font_at_size("OpenSans-Regular", font_size);
+
+        int from_length = font->get_text_width("от");
+        int to_length = font->get_text_width("до");
+
+        int text_length = Max(from_length, to_length);
+        
+        int width  = (int)(0.5f * sys->target_width);
+        int height = font->character_height;
+
+        int pad = (int)(0.1f * height) * 2;
+        int line_width = width + text_length + pad;
+        Vector4 bg_color(0, 0, 0, 1);
+        
+        int x = (sys->target_width  - width)  / 2;
+        int y = (sys->target_height - height) / 2;
+
+        hud_declare_occlusion(x - text_length - pad, y, width + text_length + pad/2, 3*height + pad);
+        
+        rendering_2d_right_handed();
+        sys->set_shader(globals.shader_color);
+        
+        Vector4 color(0.1f, 0.1f, 0.9f, 1);
+        Vector4 border_color(0.011f, 0.01f, 0.96, 1);
+        
+        sys->immediate_begin();
+        draw_quad(Vector2((float)(x - text_length - pad), (float)(y - pad/2)), Vector2((float)(line_width + pad/2), (float)(3*height + pad)), bg_color);
+        draw_quad_with_border(Vector2((float)x, (float)y), Vector2((float)width, (float)height), color, 0.1f, border_color);
+        draw_quad_with_border(Vector2((float)x, (float)(y + height)), Vector2((float)width, (float)height), color, 0.1f, border_color);
+        //draw_quad_with_border(Vector2((float)x, (float)(y + 2*height)), Vector2((float)width, (float)height), color, 0.1f, border_color);
+        sys->immediate_flush();
+
+        vacation_info_from_text_input.draw(font, x, y+height, width, Vector4(1, 1, 1, 1));
+        vacation_info_to_text_input.draw(font, x, y, width, Vector4(1, 1, 1, 1));
+
+        x -= text_length;
+        x -= pad;
+
+        int yy = y + font->y_offset_for_centering / 2;
+        
+        draw_text(font, "От", x, yy+height, Vector4(1, 1, 1, 1));
+        draw_text(font, "До", x, yy, Vector4(1, 1, 1, 1));
+
+        char *text = "Добави";
+        
+        //x += text_length + pad;
+        //x += width / 2;
+
+        width  = font->get_text_width(text);
+        height = font->character_height;
+        
+        auto state = do_button(font, text, x, y + height*2 + pad/2, width, height, default_button_theme, true);
+        if (state == Button_State::LEFT_PRESSED) {
+            char *from_text = vacation_info_from_text_input.get_result();
+            char *to_text   = vacation_info_to_text_input.get_result();
+
+            // TODO: Check if they are valid
+
+            Employee *employee = NULL; // It is here so that goto works
+            
+            bool success = true;
+            
+            int from_day, from_month, from_year;
+            int res = sscanf(from_text, "%d.%d.%d", &from_day, &from_month, &from_year);
+            if (res != 3) {
+                success = false;
+                goto error_from;
+            }
+
+            int to_day, to_month, to_year;
+            res = sscanf(to_text, "%d.%d.%d", &to_day, &to_month, &to_year);
+            if (res != 3) {
+                success = false;
+                goto error_to;
+            }
+
+            employee = currently_right_clicked_employee;
+            if (employee) {
+                employee->add_vacation_info(from_day, from_month, from_year, to_day, to_month, to_year);
+            }
+
+            disable_employee_info_text_input();
+            
+    error_to:
+            if (!success) {
+                os_show_message_box("Грешка", "Невалидна до дата\nФормат: ДД.ММ.ГГГГ", true);
+                success = true; // Already handled the error, no need to show it again.
+            }
+            
+    error_from:
+            if (!success) {
+                os_show_message_box("Грешка", "Невалидна от дата\nФормат: ДД.ММ.ГГГГ", true);
+            }
         }
     }
 }

@@ -24,6 +24,8 @@ struct Text_Input {
     char *get_result(int final_character = -1);
 
     void reset();
+
+    void add_text(char *text);
     
     void handle_event(Event event);
 

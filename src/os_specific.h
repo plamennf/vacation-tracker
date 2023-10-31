@@ -22,3 +22,5 @@ struct System_Time {
 System_Time os_get_local_time();
 
 double os_get_time();
+
+void os_show_message_box(char *caption, char *text, bool error);

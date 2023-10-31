@@ -17,7 +17,8 @@ void Text_Input::handle_event(Event event) {
         int key = event.utf32;
 
         if (num_characters < MAX_BUFFER_SIZE) {
-            for (int i = num_characters - 1; i >= cursor; i--) {
+            //for (int i = num_characters - 1; i >= cursor; i--) {
+            for (int i = num_characters; i >= cursor; i--) {
                 input_buffer[i] = input_buffer[i - 1];
             }
             
@@ -51,6 +52,11 @@ void Text_Input::handle_event(Event event) {
             }
         }
     }
+
+    if (num_characters < 0) num_characters = 0;
+
+    if (cursor < 0) cursor = 0;
+    if (cursor > num_characters) cursor = num_characters;
 }
 
 void Text_Input::activate() {
@@ -93,9 +99,28 @@ char *Text_Input::get_result(int final_character) {
 }
 
 void Text_Input::reset() {
-    if (!initted) init();
+    deactivate();
     
-    activate();
+    memset(input_buffer, 0, sizeof(input_buffer));
+    num_characters = 0;
+    cursor = 0;
+}
+
+void Text_Input::add_text(char *text) {
+    for (char *at = text; *at;) {
+        int codepoint_byte_count;
+        int codepoint = get_codepoint(at, &codepoint_byte_count);
+
+        for (int i = num_characters; i >= cursor; i--) {
+            input_buffer[i] = input_buffer[i - 1];
+        }
+        
+        input_buffer[cursor] = codepoint;
+        num_characters += 1;
+        cursor += 1;
+        
+        at += codepoint_byte_count;
+    }
 }
 
 Vector4 Text_Input::get_cursor_color(Vector4 non_white) {
@@ -139,7 +164,7 @@ void Text_Input::draw(Dynamic_Font *font, int text_x, int text_y, int entry_widt
     //
     // Draw the cursor
     //
-    {
+    if (active) {
         int cw = (int)(0.001f * sys->target_width);
         int ch = font->character_height;
         

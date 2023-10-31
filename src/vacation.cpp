@@ -14,14 +14,15 @@ Employee *add_employee(char *name) {
     return result;
 }
 
-Vacation_Info *Employee::add_vacation_info(int from_day, int from_month, int to_day, int to_month, int year) {
+Vacation_Info *Employee::add_vacation_info(int from_day, int from_month, int from_year, int to_day, int to_month, int to_year) {
     Vacation_Info *info = vacations.add();
-
-    info->year       = year;
+    
+    info->from_year  = from_year;
     info->from_month = from_month;
     info->from_day   = from_day;
-    info->to_day     = to_day;
+    info->to_year    = to_year;
     info->to_month   = to_month;
+    info->to_day     = to_day;
 
     return info;
 }
