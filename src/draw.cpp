@@ -184,7 +184,8 @@ static void disable_employee_name_text_input() {
 
 static void enable_employee_info_text_input() {
     should_draw_employee_info_text_input = true;
-
+    currently_selected_text_input = 0;
+    
     vacation_info_from_text_input.reset();
     vacation_info_from_text_input.activate();
 
@@ -441,22 +442,31 @@ static void draw_hud() {
     // Draw time
     //
     {
+        char *text = "Няма засичащи се отпуски";
+        Vector4 text_color(0, 0, 0, 1);
+        if (are_vacations_colliding()) {
+            text = "Има засичащи се отпуски";
+            text_color = Vector4(1, 0, 0, 1);
+        }
+
+        /*
         System_Time time = os_get_local_time();
         char text[4096];
         snprintf(text, sizeof(text), "%.2d:%.2d:%.2d", time.hour, time.minute, time.second);
         
         Vector4 text_color(0, 0, 0, 1);
-
+        */
+        
         int font_size = (int)(0.025f * sys->target_height);
         auto font = get_font_at_size("OpenSans-Regular", font_size);
         int x = 0;
         int y = sys->target_height - font->character_height;
         
         int offset = font->character_height / 20;
-        if (offset) {
-            draw_text(font, text, x+offset, y-offset, Vector4(1, 1, 1, 1));
-        }
-        draw_text(font, text, x, y, Vector4(0, 0, 0, 1));
+        if (offset < 2) offset = 2;
+        
+        draw_text(font, text, x+offset, y-offset, Vector4(1, 1, 1, 1));
+        draw_text(font, text, x, y, text_color);
 
         start_y -= font->character_height * 2;
         start_y -= font->character_height / 2;
@@ -505,18 +515,24 @@ static void draw_hud() {
             char *text = employee->name;
             
             int text_width = font->get_text_width(longest_name);
-
+            
             int width  = text_width * 2;
             int height = font->character_height * 2;
-
+            
             int x0 = x;
             int y0 = y - height;
-
+            
             auto theme = default_button_theme;
-            theme.bg_color         = Vector4(56.0f/255.0f,  176.0f/255.0f, 0, 1);
-            theme.hovered_bg_color = Vector4(0,             128.0f/255.0f, 0, 1);
-            theme.pressed_bg_color = Vector4(0,             114.0f/255.0f, 0, 1);
             theme.allow_right_clicks = true;
+            if (employee->has_vacation_that_overlaps) {
+                theme.bg_color         = Vector4(224.0f/255.0f, 30.0f/255.0f, 55.0f/255.0f, 1);
+                theme.hovered_bg_color = Vector4(218.0f/255.0f, 30.0f/255.0f, 55.0f/255.0f, 1);
+                theme.pressed_bg_color = Vector4(119.0f/255.0f, 31.0f/255.0f, 55.0f/255.0f, 1);
+            } else {
+                theme.bg_color         = Vector4(56.0f/255.0f,  176.0f/255.0f, 0, 1);
+                theme.hovered_bg_color = Vector4(0,             128.0f/255.0f, 0, 1);
+                theme.pressed_bg_color = Vector4(0,             114.0f/255.0f, 0, 1);
+            }
             
             auto state = do_button(font, text, x0, y0, width, height, theme);
             if (state == Button_State::LEFT_PRESSED) {
@@ -535,8 +551,12 @@ static void draw_hud() {
                 defer { delete [] text; };
 
                 y0 = y - font->character_height;
-                
-                draw_text(font, text, x0, y0, Vector4(0, 0, 0, 1));
+
+                Vector4 color(0, 0, 0, 1);
+                if (info.is_colliding) {
+                    color = Vector4(1, 0, 0, 1);
+                }
+                draw_text(font, text, x0, y0, color);
 
                 y -= font->character_height - font->typical_descender;
             }
@@ -671,7 +691,7 @@ static void draw_hud() {
         
         int width  = (int)(0.5f * sys->target_width);
         int height = font->character_height;
-
+        
         int pad = (int)(0.1f * height) * 2;
         int line_width = width + text_length + pad;
         Vector4 bg_color(0, 0, 0, 1);
@@ -680,6 +700,33 @@ static void draw_hud() {
         int y = (sys->target_height - height) / 2;
 
         hud_declare_occlusion(x - text_length - pad, y, width + text_length + pad/2, 3*height + pad);
+
+        {            
+            int mx, my;
+            sys->get_mouse_pointer_position(&mx, &my);
+            
+            int offset_x = sys->offset_offscreen_to_back_buffer_x;
+            int offset_y = sys->offset_offscreen_to_back_buffer_y;
+
+            mx -= offset_x;
+            my -= offset_y;
+
+            if (is_key_pressed(MOUSE_BUTTON_LEFT)) {
+                if ((mx >= x) && (mx <= x + width) &&
+                    (my >= y) && (my <= y + height)) {
+                    currently_selected_text_input = 1;
+                    vacation_info_from_text_input.deactivate();
+                    vacation_info_to_text_input.activate();
+                }
+
+                if ((mx >= x) && (mx <= x + width) &&
+                    (my >= y + height) && (my <= y + 2*height)) {
+                    currently_selected_text_input = 0;
+                    vacation_info_to_text_input.deactivate();
+                    vacation_info_from_text_input.activate();
+                }
+            }
+        }
         
         rendering_2d_right_handed();
         sys->set_shader(globals.shader_color);
@@ -730,14 +777,14 @@ static void draw_hud() {
                 success = false;
                 goto error_from;
             }
-
+            
             int to_day, to_month, to_year;
             res = sscanf(to_text, "%d.%d.%d", &to_day, &to_month, &to_year);
             if (res != 3) {
                 success = false;
                 goto error_to;
             }
-
+            
             employee = currently_right_clicked_employee;
             if (employee) {
                 employee->add_vacation_info(from_day, from_month, from_year, to_day, to_month, to_year);
