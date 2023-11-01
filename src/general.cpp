@@ -4,6 +4,10 @@
 #include <string.h> // For strlen
 #include <ctype.h>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 char *mprintf(char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -118,6 +122,10 @@ void log(char *fmt, ...) {
     va_end(args);
 
     printf("%s", buf);
+
+#ifdef _WIN32
+    OutputDebugStringA(buf);
+#endif
 }
 
 void log_error(char *fmt, ...) {
@@ -131,6 +139,10 @@ void log_error(char *fmt, ...) {
     char *prefix = "\033[1;31m";
     char *postfix = "\033[0m";
     printf("%s%s%s", prefix, buf, postfix);
+
+#ifdef _WIN32
+    OutputDebugStringA(buf);
+#endif
 }
 
 // Copy-paste from https://github.com/raysan5/raylib/blob/master/src/rtext.c

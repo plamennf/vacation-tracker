@@ -47,6 +47,8 @@ static bool mouse_is_in_occluded_region() {
 }
 
 static bool button_fits_into_occluded_region(int x, int y, int width, int height) {
+    if (!occlusion_enabled) return true;
+    
     return ((x + width  <= occlusion_x + occlusion_width) &&
             (y + height <= occlusion_y + occlusion_height) &&
             (x >= occlusion_x) &&
@@ -80,8 +82,8 @@ Button_State do_button(Dynamic_Font *font, char *text, int x, int y, int width, 
                 }
                 
                 if (theme.allow_right_clicks) {
-                    if ((is_key_down(MOUSE_BUTTON_LEFT && state != Button_State::LEFT_PRESSED)) ||
-                        (is_key_down(MOUSE_BUTTON_RIGHT && state != Button_State::RIGHT_PRESSED))) {
+                    if ((is_key_down(MOUSE_BUTTON_LEFT) && state != Button_State::LEFT_PRESSED) ||
+                        (is_key_down(MOUSE_BUTTON_RIGHT) && state != Button_State::RIGHT_PRESSED)) {
                         color = theme.pressed_bg_color;
                     } else {
                         color = theme.hovered_bg_color;

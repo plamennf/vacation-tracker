@@ -526,7 +526,7 @@ static void draw_hud() {
             theme.allow_right_clicks = true;
             if (employee->has_vacation_that_overlaps) {
                 theme.bg_color         = Vector4(224.0f/255.0f, 30.0f/255.0f, 55.0f/255.0f, 1);
-                theme.hovered_bg_color = Vector4(218.0f/255.0f, 30.0f/255.0f, 55.0f/255.0f, 1);
+                theme.hovered_bg_color = Vector4(167.0f/255.0f, 30.0f/255.0f, 55.0f/255.0f, 1);
                 theme.pressed_bg_color = Vector4(119.0f/255.0f, 31.0f/255.0f, 55.0f/255.0f, 1);
             } else {
                 theme.bg_color         = Vector4(56.0f/255.0f,  176.0f/255.0f, 0, 1);
@@ -598,6 +598,16 @@ static void draw_hud() {
                     if (employee_index != -1) {
                         all_employees.ordered_remove_by_index(employee_index);
                     }
+
+                    for (auto employee : all_employees) {
+                        employee->has_vacation_that_overlaps = false;
+                        for (int j = 0; j < employee->vacations.count; j++) {
+                            auto info = &employee->vacations[j];
+                            info->is_colliding = false;
+                        }
+                    }
+
+                    are_vacations_colliding(); // Update infos
                 } else if (strings_match_unicode(option, "Преименувай")) {
                     enable_employee_name_text_input(EMPLOYEE_NAME_FOR_RENAMING);
 
@@ -789,7 +799,7 @@ static void draw_hud() {
             if (employee) {
                 employee->add_vacation_info(from_day, from_month, from_year, to_day, to_month, to_year);
             }
-
+            
             disable_employee_info_text_input();
             
     error_to:

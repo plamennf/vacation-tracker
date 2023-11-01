@@ -114,29 +114,18 @@ bool are_vacations_colliding() {
     bool are_colliding = false;
     
     for (auto employee : all_employees) {
-        //for (auto info : employee->vacations) {
         for (int i = 0; i < employee->vacations.count; i++) {
             auto info = &employee->vacations[i];
-            /*
-            s64 employee_from_time, employee_to_time;
-            get_vacation_time(*info, &employee_from_time, &employee_to_time);
-            */
-
             Date employee_start(*info, true);
             Date employee_end(*info, false);
             
             for (auto other : all_employees) {
                 if (employee == other) continue;
 
-                //for (auto other_info : other->vacations) {
                 for (int j = 0; j < other->vacations.count; j++) {
                     Vacation_Info *other_info = &other->vacations[j];
                     Date other_start(*other_info, true);
                     Date other_end(*other_info, false);
-
-                    /*
-                    if (Max(employee_to_time, other_to_time) - Min(employee_from_time, other_from_time) < (employee_to_time - employee_from_time) + (other_to_time - other_from_time)) {
-                    */
                     
                     if (Max(employee_start, other_start) < Min(employee_end, other_end)) {
                         employee->has_vacation_that_overlaps = true;

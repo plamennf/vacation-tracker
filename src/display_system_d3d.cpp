@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "display_system_d3d.h"
 #include "os_specific.h"
+#include "resource.h"
 
 #include <stdio.h> // For sscanf
 #include <stdlib.h> // For exit.
@@ -197,11 +198,11 @@ Display_System_D3D::Display_System_D3D(int width, int height, char *title, bool 
     wc.style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     wc.lpfnWndProc   = WndProc;
     wc.hInstance     = GetModuleHandleW(NULL);
-    wc.hIcon         = LoadIconW(NULL, IDI_APPLICATION);
+    wc.hIcon         = (HICON)LoadImageW(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 256, 256, 0);
     wc.hCursor       = LoadCursorW(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
     wc.lpszClassName = L"GameWin32WindowClass";
-    wc.hIconSm       = LoadIconW(NULL, IDI_APPLICATION);
+    wc.hIconSm       = (HICON)LoadImageW(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 32, 32, 0);
 
     if (RegisterClassExW(&wc) == 0) {
         log_error("RegisterClassExW returned 0.\n");

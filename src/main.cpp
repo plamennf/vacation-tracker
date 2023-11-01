@@ -2,9 +2,12 @@
 #include "main.h"
 #include "draw.h"
 #include "os_specific.h"
+#include "vacation.h"
 
 #include "shader_catalog.h"
 #include "texture_catalog.h"
+
+#include <stdio.h>
 
 struct Key_State {
     bool is_down;
@@ -37,6 +40,9 @@ static void update_time() {
     globals.time_info.current_real_world_time += delta;
 }
 
+static void save_data();
+static void load_data();
+
 int main(int argc, char **argv) {
     os_init_colors_and_utf8();
 
@@ -54,7 +60,7 @@ int main(int argc, char **argv) {
     
     int startup_window_width  = 1600;
     int startup_window_height = 900;
-    globals.display_system = make_display_system(startup_window_width, startup_window_height, "A Game", true);
+    globals.display_system = make_display_system(startup_window_width, startup_window_height, "Отпуски", true);
     defer { delete globals.display_system; };
     globals.display_system->maintain_aspect_ratio = true;
     globals.display_system->desired_aspect_ratio = 16.0f / 9.0f;
@@ -70,6 +76,8 @@ int main(int argc, char **argv) {
     
     init_shaders();
 
+    load_data();
+    
     globals.time_info.last_time = os_get_time();
     
     while (!globals.should_quit_game) {
@@ -111,7 +119,73 @@ int main(int argc, char **argv) {
         sys->swap_buffers();
     }
 
+    save_data();
     destroy_fonts();
     
     return 0;
+}
+
+static void save_data() {
+    FILE *file = fopen("save.txt", "wb");
+    if (!file) {
+        log_error("Failed to open file 'save.txt' for writing.\n");
+        return;
+    }
+    defer { fclose(file); };
+
+    fprintf(file, "%d\n", all_employees.count);
+    
+    for (auto employee : all_employees) {
+        fprintf(file, "%s\n", employee->name);
+        fprintf(file, "%d\n", (int)employee->draw_all_vacations_on_hud);
+
+        fprintf(file, "%d\n", employee->vacations.count);
+        for (auto info : employee->vacations) {
+            fprintf(file, "%d.%d.%d %d.%d.%d\n",
+                    info.from_day, info.from_month, info.from_year,
+                    info.to_day, info.to_month, info.to_year);
+        }
+    }
+}
+
+static void load_data() {
+    char *data = os_read_entire_file("save.txt");
+    if (!data) {
+        log_error("Failed to open file 'save.txt' for reading.\n");
+        return;
+    }
+    defer { delete [] data; };
+
+    char *at = data;
+    
+    char *line = consume_next_line(&at);
+
+    int num_employees = atoi(line);
+    all_employees.resize(num_employees);
+
+    for (int i = 0; i < num_employees; i++) {
+        all_employees[i] = new Employee();
+        Employee *employee = all_employees[i];
+        employee->has_vacation_that_overlaps = false;
+        
+        line = consume_next_line(&at);
+        employee->name = copy_string(line);
+
+        line = consume_next_line(&at);
+        employee->draw_all_vacations_on_hud = (bool)atoi(line);
+
+        line = consume_next_line(&at);
+        int num_vacations = atoi(line);
+        employee->vacations.resize(num_vacations);
+
+        for (int j = 0; j < num_vacations; j++) {
+            Vacation_Info *info = &employee->vacations[j];
+            info->is_colliding = false;
+            
+            line = consume_next_line(&at);
+            sscanf(line, "%d.%d.%d %d.%d.%d",
+                   &info->from_day, &info->from_month, &info->from_year,
+                   &info->to_day, &info->to_month, &info->to_year);
+        }
+    }
 }

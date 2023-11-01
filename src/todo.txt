@@ -1,5 +1,3 @@
 - Sanitize entered dates: check order, validity of day/months
-- Save information to file
+- Add checks for valid data when loading data from file
 - Find out better colors for the ui.
-- Add an icon
-- Fix title

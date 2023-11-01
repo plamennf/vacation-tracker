@@ -142,4 +142,9 @@ void os_show_message_box(char *caption, char *text, bool error) {
     MessageBoxW(NULL, wide_text, wide_caption, flags);
 }
 
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+    int main(int agrc, char **argv);
+    return main(__argc, __argv);
+}
+
 #endif
