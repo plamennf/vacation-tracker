@@ -11,6 +11,15 @@ struct Vacation_Info {
     bool is_colliding;
 };
 
+inline bool operator==(Vacation_Info a, Vacation_Info b) {
+    return ((a.from_year  == b.from_year) &&
+            (a.from_month == b.from_month) &&
+            (a.from_day   == b.from_day) &&
+            (a.to_year    == b.to_year) &&
+            (a.to_month   == b.to_month) &&
+            (a.to_day     == b.to_day));
+}
+
 struct Employee {
     char *name = NULL;
     Array <Vacation_Info> vacations;
@@ -26,3 +35,4 @@ extern Array <Employee *> all_employees;
 Employee *add_employee(char *name);
 
 bool are_vacations_colliding();
+void update_collding_for_all_infos();

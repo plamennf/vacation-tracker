@@ -143,3 +143,15 @@ bool are_vacations_colliding() {
 
     return are_colliding;
 }
+
+void update_collding_for_all_infos() {
+    for (auto employee : all_employees) {
+        employee->has_vacation_that_overlaps = false;
+        for (int j = 0; j < employee->vacations.count; j++) {
+            auto info = &employee->vacations[j];
+            info->is_colliding = false;
+        }
+    }
+
+    are_vacations_colliding(); // Update infos
+}

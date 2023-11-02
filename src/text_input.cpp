@@ -6,6 +6,7 @@
 
 void Text_Input::init() {
     num_characters = 0;
+    cursor = 0;
     
     initted = true;
 }
@@ -107,12 +108,16 @@ void Text_Input::reset() {
 }
 
 void Text_Input::add_text(char *text) {
+    if (!initted) init();
+    
     for (char *at = text; *at;) {
         int codepoint_byte_count;
         int codepoint = get_codepoint(at, &codepoint_byte_count);
-
-        for (int i = num_characters; i >= cursor; i--) {
-            input_buffer[i] = input_buffer[i - 1];
+        
+        if (num_characters != 0 && cursor != 0) {
+            for (int i = num_characters; i >= cursor; i--) {
+                input_buffer[i] = input_buffer[i - 1];
+            }
         }
         
         input_buffer[cursor] = codepoint;

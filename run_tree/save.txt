@@ -1,9 +1,65 @@
-2
-Надя Любомирова Цветкова
-1
-1
-25.5.2023 30.5.2023
-Златка Димитрова Цанкова
-1
-1
-26.5.2023 29.5.2023
+[1] # Version number do not delete
+6 # Number of employees
+Надя Цветкова                   # Employee name
+1 # Whether the employee is hidden or not
+20 # Number of vacations of the current employee
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+Росица Маринова                   # Employee name
+0 # Whether the employee is hidden or not
+5 # Number of vacations of the current employee
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+Надя Цветкова                   # Employee name
+0 # Whether the employee is hidden or not
+5 # Number of vacations of the current employee
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+Росица Маринова                   # Employee name
+0 # Whether the employee is hidden or not
+5 # Number of vacations of the current employee
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+Надя Цветкова                   # Employee name
+0 # Whether the employee is hidden or not
+5 # Number of vacations of the current employee
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+26.5.2023 31.5.2023 # StartDate EndDate
+Росица Маринова                   # Employee name
+0 # Whether the employee is hidden or not
+5 # Number of vacations of the current employee
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate
+10.5.2023 15.5.2023 # StartDate EndDate

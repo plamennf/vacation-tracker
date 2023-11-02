@@ -36,10 +36,22 @@ static Text_Input vacation_info_from_text_input;
 static Text_Input vacation_info_to_text_input;
 static int currently_selected_text_input = 0; // 0 - from, 1 - to
 
+enum Vacation_Edit_Type {
+    VACATION_EDIT_NONE,
+    VACATION_EDIT_DATE,
+    VACATION_EDIT_REMOVE,
+};
+
+static Vacation_Edit_Type vacation_edit_type = VACATION_EDIT_NONE;
+static bool show_all_vacations_for_current_employee;
+static Vacation_Info *current_vacation_info_to_edit = NULL;
+
 static char *right_click_options[] = {
     "Премахни",
     "Преименувай",
     "Добави отпуска",
+    "Промени отпуска",
+    "Премахни отпуска",
 };
 
 static int string_length_unicode(char *utf8) {
@@ -188,7 +200,7 @@ static void enable_employee_info_text_input() {
     
     vacation_info_from_text_input.reset();
     vacation_info_from_text_input.activate();
-
+    
     vacation_info_to_text_input.reset();
     //vacation_info_to_text_input.activate();
 }
@@ -200,6 +212,23 @@ static void disable_employee_info_text_input() {
     vacation_info_to_text_input.deactivate();
     
     hud_remove_occlusion();
+}
+
+static void enable_show_all_vacations(Vacation_Edit_Type type) {
+    auto sys = globals.display_system;
+    
+    vacation_edit_type = type;
+    show_all_vacations_for_current_employee = true;
+    hud_declare_occlusion(0, 0, sys->target_width, sys->target_height);
+}
+
+static void disable_show_all_vacations(bool reset_vacation_edit_type) {
+    show_all_vacations_for_current_employee = false;
+    hud_remove_occlusion();
+
+    if (reset_vacation_edit_type) {
+        vacation_edit_type = VACATION_EDIT_NONE;
+    }
 }
 
 static void resize_right_click_options() {
@@ -431,12 +460,161 @@ static char *get_longest_employee_name() {
     return longest;
 }
 
+static char *get_longest_vacation_name(Employee *employee) {
+    char longest[4096] = {};
+    int longest_length = 0;
+    
+    for (auto info : employee->vacations) {
+        char text[4096];
+        snprintf(text, sizeof(text), "От %d.%d.%dг. до %d.%d.%dг.", info.from_day, info.from_month, info.from_year, info.to_day, info.to_month, info.to_year);
+        
+        int name_length = string_length_unicode(employee->name);
+        if (name_length > longest_length) {
+            longest_length = name_length;
+            memcpy(longest, text, sizeof(longest));
+        }
+    }
+    
+    return copy_string(longest);
+}
+
+static void draw_all_vacations() {
+    if (!show_all_vacations_for_current_employee) return;
+    
+    assert(!should_draw_employee_name_text_input);
+    assert(!should_draw_employee_info_text_input);
+    assert(!should_draw_right_click_options);
+
+    auto sys = globals.display_system;
+
+    if (is_key_pressed(KEY_ESCAPE)) {
+        disable_show_all_vacations(true);
+    }
+    
+    auto employee = currently_right_clicked_employee;
+    assert(employee);
+
+    if (employee->vacations.count == 0) {
+        int font_size = (int)(0.025f * sys->target_height);
+        auto font = get_font_at_size("OpenSans-Regular", font_size);
+
+        int start_y = sys->target_height - 2*font->character_height;
+        int y = start_y;
+        
+        char *text = "Натиснете ESC за да излезете";
+        
+        int text_width = font->get_text_width(text);
+        
+        int tx = (sys->target_width - text_width) / 2;
+        int ty = y + (font->y_offset_for_centering / 2);
+        
+        int offset = font->character_height / 20;
+        if (offset < 2) offset = 2;
+
+        draw_text(font, text, tx+offset, ty-offset, Vector4(1, 1, 1, 1));
+        draw_text(font, text, tx, ty, Vector4(0, 0, 0, 1));
+
+        y -= font->character_height * 2;
+        
+        text = "Служителят няма добавени отпуски";
+
+        text_width = font->get_text_width(text);
+
+        tx = (sys->target_width - text_width) / 2;
+        ty = y + (font->y_offset_for_centering / 2);
+
+        offset = font->character_height / 20;
+        if (offset < 2) offset = 2;
+
+        draw_text(font, text, tx+offset, ty-offset, Vector4(1, 1, 1, 1));
+        draw_text(font, text, tx, ty, Vector4(0, 0, 0, 1));
+        
+        return;
+    }
+    
+    char *longest_name = get_longest_vacation_name(employee);
+    defer { delete [] longest_name; };
+
+    int font_size = (int)(0.025f * sys->target_height);
+    auto font = get_font_at_size("OpenSans-Regular", font_size);
+
+    int start_y = sys->target_height - 2*font->character_height;
+    
+    int x = sys->target_width / 2;
+    int y = start_y;
+
+    int width  = font->get_text_width(longest_name) * 2;
+    int height = font->character_height * 2;
+
+    x -= width / 2;
+    y -= height;
+
+    {
+        char *text = "Натиснете ESC за да излезете";
+
+        int text_width = font->get_text_width(text);
+        
+        int tx = (sys->target_width - text_width) / 2;
+        int ty = start_y + (font->y_offset_for_centering / 2);
+        
+        int offset = font->character_height / 20;
+        if (offset < 2) offset = 2;
+
+        draw_text(font, text, tx+offset, ty-offset, Vector4(1, 1, 1, 1));
+        draw_text(font, text, tx, ty, Vector4(0, 0, 0, 1));
+
+        y -= font->character_height;
+    }
+
+    for (int i = 0; i < employee->vacations.count; i++) {
+        auto info = &employee->vacations[i];
+        
+        char *text = mprintf("От %d.%d.%dг. до %d.%d.%dг.", info->from_day, info->from_month, info->from_year, info->to_day, info->to_month, info->to_year);
+        defer { delete [] text; };
+
+        auto theme = default_button_theme; // @TODO: Edit this
+        auto state = do_button(font, text, x, y, width, height, theme, true);
+        if (state == Button_State::LEFT_PRESSED) {
+            switch (vacation_edit_type) {
+                case VACATION_EDIT_DATE: {
+                    disable_show_all_vacations(false);
+                    current_vacation_info_to_edit = info;
+                    
+                    enable_employee_info_text_input();
+                    
+                    char *from_text = mprintf("%d.%d.%d", info->from_day, info->from_month, info->from_year); // @Leak
+                    vacation_info_from_text_input.add_text(from_text);
+                    
+                    char *to_text = mprintf("%d.%d.%d", info->to_day, info->to_month, info->to_year); // @Leak
+                    vacation_info_to_text_input.add_text(to_text);
+                } break;
+
+                case VACATION_EDIT_REMOVE: {
+                    disable_show_all_vacations(true);
+                    
+                    int info_index = employee->vacations.find(*info);
+                    if (info_index != -1) {
+                        employee->vacations.ordered_remove_by_index(info_index);
+                    }
+                } break;
+            }
+        }
+
+        y -= height;
+    }
+}
+
 static void draw_hud() {
     auto sys = globals.display_system;
-    
-    int start_y = sys->target_height;
 
     rendering_2d_right_handed_with_y_offset(draw_y_offset_due_to_scrolling);
+
+    if (show_all_vacations_for_current_employee) {
+        draw_all_vacations();
+        return;
+    }
+
+    int start_y = sys->target_height;
     
     //
     // Draw time
@@ -490,7 +668,7 @@ static void draw_hud() {
         int y = sys->target_height - offset - height;
         
         if (do_button(font, text, x, y, width, height, default_button_theme) == Button_State::LEFT_PRESSED) {
-            log("Adding employee.\n");
+            //log("Adding employee.\n");
             enable_employee_name_text_input(EMPLOYEE_NAME_FOR_ADDING);
         }
     }
@@ -546,31 +724,34 @@ static void draw_hud() {
 
             if (!employee->draw_all_vacations_on_hud) continue;
 
-            for (auto info : employee->vacations) {
-                char *text = mprintf("От %d.%d.%dг. до %d.%d.%dг.", info.from_day, info.from_month, info.from_year, info.to_day, info.to_month, info.to_year);
-                defer { delete [] text; };
+            if (employee->vacations.count == 0) {
+                char *text = "Няма добавени отпуски";
 
                 y0 = y - font->character_height;
-
+                
                 Vector4 color(0, 0, 0, 1);
-                if (info.is_colliding) {
-                    color = Vector4(1, 0, 0, 1);
-                }
                 draw_text(font, text, x0, y0, color);
 
                 y -= font->character_height - font->typical_descender;
+            } else {
+                for (auto info : employee->vacations) {
+                    char *text = mprintf("От %d.%d.%dг. до %d.%d.%dг.", info.from_day, info.from_month, info.from_year, info.to_day, info.to_month, info.to_year);
+                    defer { delete [] text; };
+
+                    y0 = y - font->character_height;
+                    
+                    Vector4 color(0, 0, 0, 1);
+                    if (info.is_colliding) {
+                        color = Vector4(1, 0, 0, 1);
+                    }
+                    draw_text(font, text, x0, y0, color);
+
+                    y -= font->character_height - font->typical_descender;
+                }
             }
         }
 
         bottom_y_after_drawing = (float)(y - right_click_height);
-
-        /*
-        if (y > 0) {
-            bottom_y_after_drawing = (float)(y - right_click_height);
-        } else {
-            bottom_y_after_drawing = 0.0f;
-        }
-        */
     }
 
     if (should_draw_right_click_options && currently_right_clicked_employee) {
@@ -599,15 +780,7 @@ static void draw_hud() {
                         all_employees.ordered_remove_by_index(employee_index);
                     }
 
-                    for (auto employee : all_employees) {
-                        employee->has_vacation_that_overlaps = false;
-                        for (int j = 0; j < employee->vacations.count; j++) {
-                            auto info = &employee->vacations[j];
-                            info->is_colliding = false;
-                        }
-                    }
-
-                    are_vacations_colliding(); // Update infos
+                    update_collding_for_all_infos();
                 } else if (strings_match_unicode(option, "Преименувай")) {
                     enable_employee_name_text_input(EMPLOYEE_NAME_FOR_RENAMING);
 
@@ -618,6 +791,10 @@ static void draw_hud() {
                 } else if (strings_match_unicode(option, "Добави отпуска")) {
                     //auto info = employee->add_vacation_info(5, 5, 6, 6, 2023);
                     enable_employee_info_text_input();
+                } else if (strings_match_unicode(option, "Промени отпуска")) {
+                    enable_show_all_vacations(VACATION_EDIT_DATE);
+                } else if (strings_match_unicode(option, "Премахни отпуска")) {
+                    enable_show_all_vacations(VACATION_EDIT_REMOVE);
                 }
             }
 
@@ -763,6 +940,9 @@ static void draw_hud() {
         draw_text(font, "До", x, yy, Vector4(1, 1, 1, 1));
 
         char *text = "Добави";
+        if (vacation_edit_type == VACATION_EDIT_DATE) {
+            text = "Промени";
+        }
         
         //x += text_length + pad;
         //x += width / 2;
@@ -774,7 +954,7 @@ static void draw_hud() {
         if (state == Button_State::LEFT_PRESSED) {
             char *from_text = vacation_info_from_text_input.get_result();
             char *to_text   = vacation_info_to_text_input.get_result();
-
+            
             // TODO: Check if they are valid
 
             Employee *employee = NULL; // It is here so that goto works
@@ -797,10 +977,28 @@ static void draw_hud() {
             
             employee = currently_right_clicked_employee;
             if (employee) {
-                employee->add_vacation_info(from_day, from_month, from_year, to_day, to_month, to_year);
+                if (vacation_edit_type == VACATION_EDIT_DATE) {
+                    auto info = current_vacation_info_to_edit;
+                    if (info) {
+                        info->from_day   = from_day;
+                        info->from_month = from_month;
+                        info->from_year  = from_year;
+                        info->to_day     = to_day;
+                        info->to_month   = to_month;
+                        info->to_year    = to_year;
+                    }
+                } else {
+                    employee->add_vacation_info(from_day, from_month, from_year, to_day, to_month, to_year);
+                }
             }
             
             disable_employee_info_text_input();
+            
+            if (vacation_edit_type == VACATION_EDIT_DATE) {
+                vacation_edit_type = VACATION_EDIT_NONE;
+            }
+
+            update_collding_for_all_infos();
             
     error_to:
             if (!success) {

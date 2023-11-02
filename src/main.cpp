@@ -3,6 +3,7 @@
 #include "draw.h"
 #include "os_specific.h"
 #include "vacation.h"
+#include "text_file_handler.h"
 
 #include "shader_catalog.h"
 #include "texture_catalog.h"
@@ -125,6 +126,8 @@ int main(int argc, char **argv) {
     return 0;
 }
 
+const int CURRENT_DATA_FILE_VERSION = 1;
+
 static void save_data() {
     FILE *file = fopen("save.txt", "wb");
     if (!file) {
@@ -133,15 +136,17 @@ static void save_data() {
     }
     defer { fclose(file); };
 
-    fprintf(file, "%d\n", all_employees.count);
+    fprintf(file, "[%d] # Version number do not delete\n", CURRENT_DATA_FILE_VERSION);
+    
+    fprintf(file, "%d # Number of employees\n", all_employees.count);
     
     for (auto employee : all_employees) {
-        fprintf(file, "%s\n", employee->name);
-        fprintf(file, "%d\n", (int)employee->draw_all_vacations_on_hud);
+        fprintf(file, "%s # Employee name\n", employee->name);
+        fprintf(file, "%d # Whether the employee is hidden or not\n", (int)employee->draw_all_vacations_on_hud);
 
-        fprintf(file, "%d\n", employee->vacations.count);
+        fprintf(file, "%d # Number of vacations of the current employee\n", employee->vacations.count);
         for (auto info : employee->vacations) {
-            fprintf(file, "%d.%d.%d %d.%d.%d\n",
+            fprintf(file, "%d.%d.%d %d.%d.%d # StartDate EndDate\n",
                     info.from_day, info.from_month, info.from_year,
                     info.to_day, info.to_month, info.to_year);
         }
@@ -149,17 +154,12 @@ static void save_data() {
 }
 
 static void load_data() {
-    char *data = os_read_entire_file("save.txt");
-    if (!data) {
-        log_error("Failed to open file 'save.txt' for reading.\n");
-        return;
-    }
-    defer { delete [] data; };
+    Text_File_Handler handler;
+    handler.eat_spaces_before_line = false;
+    handler.start_file("save", "save.txt", "save");
+    if (handler.failed) return;
 
-    char *at = data;
-    
-    char *line = consume_next_line(&at);
-
+    char *line = handler.consume_next_line();
     int num_employees = atoi(line);
     all_employees.resize(num_employees);
 
@@ -168,13 +168,13 @@ static void load_data() {
         Employee *employee = all_employees[i];
         employee->has_vacation_that_overlaps = false;
         
-        line = consume_next_line(&at);
+        line = handler.consume_next_line();
         employee->name = copy_string(line);
 
-        line = consume_next_line(&at);
+        line = handler.consume_next_line();
         employee->draw_all_vacations_on_hud = (bool)atoi(line);
 
-        line = consume_next_line(&at);
+        line = handler.consume_next_line();
         int num_vacations = atoi(line);
         employee->vacations.resize(num_vacations);
 
@@ -182,7 +182,7 @@ static void load_data() {
             Vacation_Info *info = &employee->vacations[j];
             info->is_colliding = false;
             
-            line = consume_next_line(&at);
+            line = handler.consume_next_line();
             sscanf(line, "%d.%d.%d %d.%d.%d",
                    &info->from_day, &info->from_month, &info->from_year,
                    &info->to_day, &info->to_month, &info->to_year);

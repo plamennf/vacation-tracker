@@ -1,3 +1,4 @@
+- Add space between vacation dates on show_all_vacations
 - Sanitize entered dates: check order, validity of day/months
 - Add checks for valid data when loading data from file
-- Find out better colors for the ui.
+- Find out better colors for the ui: (Blue, Yellow, Green)
