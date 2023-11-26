@@ -154,6 +154,7 @@ struct Display_System {
     
     int display_width;
     int display_height;
+    bool maximized;
     
     int target_width;
     int target_height;

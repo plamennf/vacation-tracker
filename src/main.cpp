@@ -10,6 +10,9 @@
 
 #include <stdio.h>
 
+static int startup_window_width  = -1;
+static int startup_window_height = -1;
+
 struct Key_State {
     bool is_down;
     bool was_down;
@@ -58,9 +61,9 @@ int main(int argc, char **argv) {
         
         os_set_current_working_directory(path);
     }
+
+    load_data();
     
-    int startup_window_width  = 1600;
-    int startup_window_height = 900;
     globals.display_system = make_display_system(startup_window_width, startup_window_height, "Отпуски", true);
     defer { delete globals.display_system; };
     globals.display_system->maintain_aspect_ratio = true;
@@ -76,8 +79,6 @@ int main(int argc, char **argv) {
     defer { delete globals.texture_catalog; };
     
     init_shaders();
-
-    load_data();
     
     globals.time_info.last_time = os_get_time();
     
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-const int CURRENT_DATA_FILE_VERSION = 1;
+const int CURRENT_DATA_FILE_VERSION = 2;
 
 static void save_data() {
     FILE *file = fopen("save.txt", "wb");
@@ -137,6 +138,15 @@ static void save_data() {
     defer { fclose(file); };
 
     fprintf(file, "[%d] # Version number do not delete\n", CURRENT_DATA_FILE_VERSION);
+
+    auto sys = globals.display_system;
+    if (sys->maximized) {
+        fprintf(file, "%d # Window width; -1 means not set\n", -1);
+        fprintf(file, "%d # Window height; -1 means not set\n", -1);
+    } else {
+        fprintf(file, "%d # Window width; -1 means not set\n", sys->display_width);
+        fprintf(file, "%d # Window height; -1 means not set\n", sys->display_height);
+    }
     
     fprintf(file, "%d # Number of employees\n", all_employees.count);
     
@@ -159,6 +169,14 @@ static void load_data() {
     handler.start_file("save", "save.txt", "save");
     if (handler.failed) return;
 
+    if (handler.version == 2) {
+        char *line = handler.consume_next_line();
+        startup_window_width = atoi(line);
+
+        line = handler.consume_next_line();
+        startup_window_height = atoi(line);
+    }
+    
     char *line = handler.consume_next_line();
     int num_employees = atoi(line);
     all_employees.resize(num_employees);

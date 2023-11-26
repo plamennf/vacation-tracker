@@ -76,6 +76,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             int height = rect.bottom - rect.top;
 
             sys->handle_resizes(width, height);
+
+            if (wParam == SIZE_MAXIMIZED) {
+                sys->maximized = true;
+            } else {
+                sys->maximized = false;
+            }
         
             break;
         }
@@ -181,15 +187,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 }
 
 Display_System_D3D::Display_System_D3D(int width, int height, char *title, bool vsync) {
-    if (width <= 0) {
-        log_error("Display_System(): width can't be <= 0.\n");
-        exit(1);
-    }
-    if (height <= 0) {
-        log_error("Display_System(): height can't be <= 0.\n");
-        exit(1);
-    }
-    
     should_vsync = vsync;
     
     WNDCLASSEXW wc = {};
@@ -209,6 +206,27 @@ Display_System_D3D::Display_System_D3D(int width, int height, char *title, bool 
         exit(1);
     }
 
+    if (width == -1 || height == -1) {
+        HWND desktop = GetDesktopWindow();
+        RECT desktop_rect;
+        GetWindowRect(desktop, &desktop_rect);
+
+        int desktop_width  = desktop_rect.right - desktop_rect.left;
+        int desktop_height = desktop_rect.bottom - desktop_rect.top;
+
+        width  = (int)((double)desktop_width  * 2.0/3.0);
+        height = (int)((double)desktop_height * 2.0/3.0);
+    }
+
+    if (width <= 0) {
+        log_error("Display_System(): width can't be <= 0.\n");
+        exit(1);
+    }
+    if (height <= 0) {
+        log_error("Display_System(): height can't be <= 0.\n");
+        exit(1);
+    }
+    
     DWORD window_style = WS_OVERLAPPEDWINDOW;
 
     RECT window_rect = {};
