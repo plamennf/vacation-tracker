@@ -187,6 +187,8 @@ static void load_data() {
         employee->has_vacation_that_overlaps = false;
         
         line = handler.consume_next_line();
+        line = eat_spaces(line);
+        line = eat_trailing_spaces(line);
         employee->name = copy_string(line);
 
         line = handler.consume_next_line();

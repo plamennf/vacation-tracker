@@ -424,7 +424,7 @@ static void draw_generated_quads(Dynamic_Font *font, Vector4 color) {
         
         Vector2 p1 = quad.p0 + (quad.p1 - quad.p0) / 3;
         Vector2 p2 = quad.p3 + (quad.p2 - quad.p3) / 3;
-
+        
         Vector2 uv0(quad.u0, quad.v0);
         Vector2 uv1(quad.u1, quad.v0);
         Vector2 uv2(quad.u1, quad.v1);
@@ -615,6 +615,11 @@ static void draw_hud() {
     }
 
     int start_y = sys->target_height;
+
+    if (is_key_pressed(KEY_ESCAPE)) {
+        disable_employee_name_text_input();
+        disable_employee_info_text_input();
+    }
     
     //
     // Draw time
@@ -626,7 +631,7 @@ static void draw_hud() {
             text = "Има засичащи се отпуски";
             text_color = Vector4(1, 0, 0, 1);
         }
-
+        
         /*
         System_Time time = os_get_local_time();
         char text[4096];
